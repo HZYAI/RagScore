@@ -1,0 +1,31 @@
+# Core dependencies (lightweight, CPU-only)
+pypdf2>=3.0.1
+nltk>=3.8.1
+tqdm>=4.66.1
+faiss-cpu>=1.7.4
+dashscope>=1.14.1
+langchain-community>=0.0.31
+numpy<2.0.0
+typer[all]>=0.9.0
+python-dotenv>=1.0.0
+
+# sentence-transformers (torch will be installed separately as CPU-only)
+sentence-transformers>=2.2.2
+
+# Web application dependencies
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+websockets>=12.0
+
+# Assessment dependencies
+requests>=2.31.0
+urllib3>=2.0.0
+pandas>=2.0.0
+xlsxwriter>=3.1.0
+
+# Development dependencies
+pytest>=7.4.3
+ruff>=0.1.6
+black>=23.11.0
+mypy>=1.7.0

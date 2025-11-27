@@ -1,0 +1,1757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAGScore - QA Dataset Generation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #007AFF;
+            --primary-hover: #0051D5;
+            --primary-light: #E3F2FF;
+            --success: #34C759;
+            --success-light: #E8F8EC;
+            --error: #FF3B30;
+            --warning: #FF9500;
+            --warning-light: #FFF4E6;
+            --bg: #F8F9FA;
+            --card-bg: #FFFFFF;
+            --text-primary: #1D1D1F;
+            --text-secondary: #6B7280;
+            --border: #E5E7EB;
+            --shadow: rgba(0, 0, 0, 0.1);
+            --accent-purple: #8B5CF6;
+            --accent-teal: #14B8A6;
+            --accent-pink: #EC4899;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            line-height: 1.6;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .header-left {
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--card-bg) 100%);
+            position: relative;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .lang-switch {
+            display: flex;
+            gap: 4px;
+        }
+
+        .lang-btn {
+            padding: 8px 16px;
+            border: 2px solid var(--border);
+            background: var(--card-bg);
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+            transition: all 0.2s;
+        }
+
+        .lang-btn:hover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .lang-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .lang-btn:hover:not(.active) {
+            background: var(--card-bg);
+        }
+
+        .logout-btn {
+            padding: 6px 12px;
+            background: var(--bg);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: var(--text-secondary);
+            color: white;
+            border-color: var(--text-secondary);
+        }
+
+        .logo-img {
+            height: 32px;
+            object-fit: contain;
+            display: block;
+            margin-bottom: 16px;
+        }
+
+        .dashboard {
+            display: flex;
+            gap: 12px;
+            padding: 16px 24px;
+            background: #FFFFFF;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            align-items: center;
+            flex-wrap: wrap;
+            min-height: 70px;
+        }
+
+        .dashboard-controls {
+            margin-left: auto;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .results-scroll-container {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .stat-card {
+            flex: 1;
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--card-bg) 100%);
+            padding: 12px 16px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .stat-card:nth-child(1) .stat-value {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent-teal) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-card:nth-child(2) .stat-value {
+            background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-pink) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-card:nth-child(3) .stat-value {
+            background: linear-gradient(135deg, var(--success) 0%, var(--accent-teal) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            transition: all 0.3s;
+        }
+
+        .stat-value.pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.7;
+                transform: scale(1.05);
+            }
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .left-panel {
+            width: 40%;
+            background: var(--card-bg);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .right-panel {
+            flex: 1;
+            background: var(--bg);
+            overflow-y: auto;
+            padding: 0;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-primary);
+        }
+
+        .section-title:first-of-type {
+            color: var(--primary);
+        }
+
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: var(--bg);
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: rgba(0, 122, 255, 0.05);
+        }
+
+        .upload-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+        }
+
+        .upload-text {
+            font-size: 16px;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .upload-hint {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .file-list {
+            margin-bottom: 20px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: var(--bg);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .file-icon {
+            margin-right: 12px;
+            font-size: 18px;
+        }
+
+        .file-name {
+            flex: 1;
+            font-size: 14px;
+        }
+
+        .file-remove {
+            color: var(--error);
+            cursor: pointer;
+            font-size: 20px;
+            padding: 4px 8px;
+        }
+
+        .config-section {
+            margin: 24px 0;
+            background: var(--bg);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .config-header {
+            padding: 16px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+
+        .config-header:hover {
+            background: rgba(0, 122, 255, 0.05);
+        }
+
+        .config-toggle {
+            font-size: 12px;
+            transition: transform 0.3s;
+        }
+
+        .config-toggle.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .config-content {
+            padding: 0 16px 16px 16px;
+            max-height: 500px;
+            transition: max-height 0.3s ease-out, padding 0.3s;
+            overflow: hidden;
+        }
+
+        .config-content.collapsed {
+            max-height: 0;
+            padding: 0 16px;
+        }
+
+        .config-item {
+            margin-bottom: 16px;
+        }
+
+        .config-label {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .config-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .config-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .difficulty-options {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .difficulty-tag {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            border: 2px solid var(--border);
+            background: var(--card-bg);
+            transition: all 0.2s;
+        }
+
+        .difficulty-tag.active {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 14px 28px;
+            font-size: 16px;
+            font-weight: 500;
+            border-radius: 980px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            margin-bottom: 12px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent-purple) 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: linear-gradient(135deg, var(--primary-hover) 0%, var(--accent-purple) 100%);
+            transform: scale(1.02);
+            box-shadow: 0 6px 16px rgba(0, 122, 255, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--bg);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: var(--bg);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .progress-bar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 122, 255, 0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        .progress-bar.active::before {
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                left: -100%;
+            }
+            100% {
+                left: 100%;
+            }
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            border-radius: 3px;
+            transition: width 0.3s;
+            width: 0%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: progressShine 2s infinite;
+        }
+
+        @keyframes progressShine {
+            0% {
+                transform: translateX(-100%);
+            }
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
+        .result-item {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px var(--shadow);
+        }
+
+        .result-question {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent-teal) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .result-answer {
+            font-size: 14px;
+            margin-bottom: 12px;
+            line-height: 1.6;
+        }
+
+        .result-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .badge-easy {
+            background: var(--success-light);
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .badge-medium {
+            background: var(--warning-light);
+            color: var(--warning);
+            font-weight: 600;
+        }
+
+        .badge-hard {
+            background: linear-gradient(135deg, rgba(255, 59, 48, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%);
+            color: var(--error);
+            font-weight: 600;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+            margin-top: 24px;
+        }
+
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        #resultsList {
+            padding: 24px;
+        }
+
+        .results-wrapper {
+            padding-top: 0;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        @keyframes slideInFast {
+            from {
+                opacity: 0;
+                transform: translateX(-20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0) scale(1);
+            }
+        }
+
+        .status-message {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        .status-success {
+            background: rgba(52, 199, 89, 0.1);
+            color: var(--success);
+        }
+
+        .status-error {
+            background: rgba(255, 59, 48, 0.1);
+            color: var(--error);
+        }
+
+        .status-info {
+            background: rgba(0, 122, 255, 0.1);
+            color: var(--primary);
+        }
+
+        /* Login Page Styles */
+        .login-container {
+            display: flex;
+            height: 100vh;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent-purple) 50%, var(--accent-pink) 100%);
+        }
+
+        .login-left {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px;
+            color: white;
+        }
+
+        .login-logo {
+            font-size: 64px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .login-tagline {
+            font-size: 24px;
+            margin-bottom: 12px;
+            opacity: 0.95;
+        }
+
+        .login-description {
+            font-size: 16px;
+            opacity: 0.85;
+            max-width: 400px;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        .login-right {
+            width: 480px;
+            background: var(--card-bg);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 60px;
+            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-form {
+            width: 100%;
+        }
+
+        .login-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .login-subtitle {
+            font-size: 15px;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent-purple) 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 122, 255, 0.4);
+        }
+
+        .demo-hint {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Assessment Results Styles */
+        .assessment-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .assessment-metric {
+            background: var(--bg);
+            padding: 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .assessment-metric-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .assessment-metric-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .assessment-metric-value.excellent {
+            color: var(--success);
+        }
+
+        .assessment-metric-value.good {
+            color: var(--accent-teal);
+        }
+
+        .assessment-metric-value.poor {
+            color: var(--error);
+        }
+
+        .assessment-error {
+            background: rgba(255, 59, 48, 0.1);
+            color: var(--error);
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 12px;
+            font-size: 14px;
+        }
+
+        /* Assessment Result Items */
+        .assessment-result-item {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px var(--shadow);
+            border-left: 4px solid var(--border);
+        }
+
+        .assessment-result-item.excellent {
+            border-left-color: var(--success);
+        }
+
+        .assessment-result-item.good {
+            border-left-color: var(--accent-teal);
+        }
+
+        .assessment-result-item.poor {
+            border-left-color: var(--error);
+        }
+
+        .assessment-result-question {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .assessment-result-response {
+            font-size: 13px;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .assessment-result-scores {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .assessment-score-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            background: var(--bg);
+        }
+
+        .view-toggle-buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .view-toggle-btn {
+            padding: 8px 16px;
+            border: 2px solid var(--border);
+            background: var(--card-bg);
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .view-toggle-btn.active {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+        }
+
+        .view-toggle-btn:hover:not(.active) {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+    </style>
+</head>
+<body>
+    <!-- Check auth and redirect if needed -->
+    <script>
+        if (!sessionStorage.getItem('isLoggedIn')) {
+            window.location.href = '/login';
+        }
+    </script>
+
+    <div class="container" id="mainApp">
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left Panel: Controls -->
+            <div class="left-panel">
+                <!-- Header in Left Panel -->
+                <div class="header-left">
+                    <img src="/static/logo.png" alt="Logo" class="logo-img" onerror="this.style.display='none'">
+                    <h1 data-en="HZY AI RAGScore" data-zh="至元RAG评分系统 Demo">HZY AI RAGScore</h1>
+                    <p class="subtitle" data-en="Generate high-quality QA datasets for RAG evaluation" data-zh="为RAG评估生成高质量问答数据集">Generate high-quality QA datasets for RAG evaluation</p>
+                </div>
+
+                <div id="statusMessage"></div>
+
+                <!-- Upload Section -->
+                <div class="section-title"><span data-en="📁 Upload Documents" data-zh="📁 上传文档">📁 Upload Documents</span></div>
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📄</div>
+                    <div class="upload-text" data-en="Drag and drop files here" data-zh="拖放文件到这里">Drag and drop files here</div>
+                    <div class="upload-hint" data-en="or click to browse (PDF, TXT, MD, HTML)" data-zh="或点击浏览 (PDF, TXT, MD, HTML)">or click to browse (PDF, TXT, MD, HTML)</div>
+                    <input type="file" id="fileInput" multiple accept=".pdf,.txt,.md,.html">
+                </div>
+                <div class="file-list" id="fileList"></div>
+
+                <!-- Configuration Section -->
+                <div class="config-section">
+                    <div class="config-header" id="configHeader">
+                        <div class="section-title" style="margin: 0;">⚙️ <span data-en="Configuration" data-zh="配置">Configuration</span></div>
+                        <span class="config-toggle">▼</span>
+                    </div>
+                    <div class="config-content" id="configContent">
+                    <div class="config-item">
+                        <label class="config-label" data-en="Questions per Chunk" data-zh="每块问题数">Questions per Chunk</label>
+                        <input type="number" class="config-input" id="questionsPerChunk" value="5" min="1" max="10">
+                    </div>
+
+                    <div class="config-item">
+                        <label class="config-label" data-en="Difficulty Levels" data-zh="难度级别">Difficulty Levels</label>
+                        <div class="difficulty-options">
+                            <div class="difficulty-tag active" data-difficulty="easy">Easy</div>
+                            <div class="difficulty-tag active" data-difficulty="medium">Medium</div>
+                            <div class="difficulty-tag active" data-difficulty="hard">Hard</div>
+                        </div>
+                    </div>
+
+                    <div class="config-item">
+                        <label class="config-label" data-en="Speed (1-5)" data-zh="速度 (1-5)">Speed (1-5)</label>
+                        <input type="number" class="config-input" id="concurrentCalls" value="5" min="1" max="5">
+                    </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <button class="btn btn-primary" id="generateBtn" disabled data-en="🚀 Generate QA Pairs" data-zh="🚀 生成问答对">
+                    🚀 Generate QA Pairs
+                </button>
+                <button class="btn btn-secondary" id="downloadBtn" style="display: none;" data-en="💾 Download JSON" data-zh="💾 下载JSON">
+                    💾 Download JSON
+                </button>
+                <button class="btn btn-secondary" id="clearBtn" data-en="🗑️ Clear All" data-zh="🗑️ 清除全部">
+                    🗑️ Clear All
+                </button>
+
+                <!-- Assessment Section (Part 2) -->
+                <div id="assessmentSection" style="display: none; margin-top: 32px; padding-top: 32px; border-top: 2px solid var(--border);">
+                    <div class="section-title"><span data-en="📊 RAG Assessment (Part 2)" data-zh="📊 RAG评估（第二部分）">📊 RAG Assessment (Part 2)</span></div>
+                    
+                    <div class="config-item">
+                        <label class="config-label" data-en="RAG Endpoint URL" data-zh="RAG端点URL">RAG Endpoint URL</label>
+                        <input type="text" class="config-input" id="ragEndpoint" placeholder="http://localhost:5000/query">
+                    </div>
+
+                    <div class="config-item">
+                        <label class="config-label" data-en="Login URL (Optional)" data-zh="登录URL（可选）">Login URL (Optional)</label>
+                        <input type="text" class="config-input" id="loginUrl" placeholder="http://localhost:5000/login">
+                    </div>
+
+                    <div class="config-item">
+                        <label class="config-label" data-en="Username (Optional)" data-zh="用户名（可选）">Username (Optional)</label>
+                        <input type="text" class="config-input" id="ragUsername" placeholder="demo">
+                    </div>
+
+                    <div class="config-item">
+                        <label class="config-label" data-en="Password (Optional)" data-zh="密码（可选）">Password (Optional)</label>
+                        <input type="password" class="config-input" id="ragPassword" placeholder="demo123">
+                    </div>
+
+                    <div class="config-item">
+                        <label class="config-label" data-en="Max Samples (Optional)" data-zh="最大样本数（可选）">Max Samples (Optional)</label>
+                        <input type="number" class="config-input" id="maxSamples" placeholder="Leave empty for all">
+                    </div>
+
+                    <button class="btn btn-primary" id="startAssessmentBtn" data-en="🎯 Start Assessment" data-zh="🎯 开始评估">
+                        🎯 Start Assessment
+                    </button>
+
+                    <div id="assessmentProgress" style="display: none; margin-top: 20px;">
+                        <div class="progress-bar active">
+                            <div class="progress-fill" id="assessmentProgressFill"></div>
+                        </div>
+                        <div id="assessmentStatus" style="text-align: center; margin-top: 8px; font-size: 13px; color: var(--text-secondary);"></div>
+                    </div>
+
+                    <div id="assessmentResults" style="display: none; margin-top: 20px;">
+                        <div class="section-title"><span data-en="📈 Assessment Results" data-zh="📈 评估结果">📈 Assessment Results</span></div>
+                        <div id="assessmentSummary"></div>
+                        <button class="btn btn-secondary" id="downloadReportBtn" style="display: none;" data-en="📄 Download Report" data-zh="📄 下载报告">
+                            📄 Download Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Results -->
+            <div class="right-panel" id="rightPanel">
+                <!-- Dashboard Stats -->
+                <div class="dashboard">
+                    <div class="stat-card">
+                        <div class="stat-value" id="qaCount">0</div>
+                        <div class="stat-label" data-en="QA Pairs" data-zh="问答对">QA Pairs</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="timer">00:00</div>
+                        <div class="stat-label" data-en="Time Elapsed" data-zh="已用时间">Time Elapsed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="progressPercent">0%</div>
+                        <div class="stat-label" data-en="Progress" data-zh="进度">Progress</div>
+                    </div>
+                    <button class="btn btn-primary" id="downloadBtnTop" style="display: none; width: auto; padding: 12px 24px; margin: 0;" data-en="💾 Download JSON" data-zh="💾 下载JSON">
+                        💾 Download JSON
+                    </button>
+                    
+                    <div class="dashboard-controls">
+                        <button class="logout-btn" id="logoutBtn" data-en="🚪 Logout" data-zh="🚪 退出">🚪 Logout</button>
+                        <div class="lang-switch">
+                            <button class="lang-btn active" id="langToggleBtn" data-lang="en">🌐 中文</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="results-scroll-container">
+                    <!-- View Toggle Buttons -->
+                    <div class="view-toggle-buttons" id="viewToggleButtons" style="display: none; padding: 16px 24px 0;">
+                        <button class="view-toggle-btn active" id="viewQABtn" data-en="📝 QA Pairs" data-zh="📝 问答对">📝 QA Pairs</button>
+                        <button class="view-toggle-btn" id="viewAssessmentBtn" data-en="📊 Assessment Results" data-zh="📊 评估结果">📊 Assessment Results</button>
+                        <button class="view-toggle-btn" id="viewSummaryBtn" data-en="📈 Summary" data-zh="📈 摘要">📈 Summary</button>
+                    </div>
+
+                    <div class="empty-state" id="emptyState">
+                        <div class="empty-icon">✨</div>
+                        <div data-en="Upload documents and click 'Generate QA Pairs' to start" data-zh="上传文档并点击"生成问答对"开始">Upload documents and click "Generate QA Pairs" to start</div>
+                    </div>
+                    <div id="resultsList"></div>
+                    <div id="assessmentResultsList" style="display: none; padding: 24px;"></div>
+                    <div id="assessmentSummaryView" style="display: none; padding: 24px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const generateBtn = document.getElementById('generateBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const downloadBtnTop = document.getElementById('downloadBtnTop');
+        const statusMessage = document.getElementById('statusMessage');
+        const resultsList = document.getElementById('resultsList');
+        const emptyState = document.getElementById('emptyState');
+        const rightPanel = document.getElementById('rightPanel');
+        const resultsScrollContainer = document.querySelector('.results-scroll-container');
+        
+        // Dashboard elements
+        const qaCount = document.getElementById('qaCount');
+        const timer = document.getElementById('timer');
+        const progressPercent = document.getElementById('progressPercent');
+
+        // State
+        let uploadedFiles = [];
+        let qaQueue = [];
+        let isDisplaying = false;
+        let displayInterval = null;
+        let startTime = null;
+        let timerInterval = null;
+        let totalQAs = 0;
+
+        // Upload area interactions
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = 'var(--primary)';
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.borderColor = 'var(--border)';
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = 'var(--border)';
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        async function handleFiles(files) {
+            const formData = new FormData();
+            Array.from(files).forEach(file => {
+                formData.append('files', file);
+                uploadedFiles.push(file.name);
+            });
+
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    showStatus(`Uploaded ${result.files.length} file(s)`, 'success');
+                    updateFileList();
+                    generateBtn.disabled = false;
+                }
+            } catch (error) {
+                showStatus('Upload failed: ' + error.message, 'error');
+            }
+        }
+
+        function updateFileList() {
+            fileList.innerHTML = uploadedFiles.map((file, index) => `
+                <div class="file-item">
+                    <span class="file-icon">📄</span>
+                    <span class="file-name">${file}</span>
+                    <span class="file-remove" onclick="removeFile(${index})">×</span>
+                </div>
+            `).join('');
+        }
+
+        function removeFile(index) {
+            uploadedFiles.splice(index, 1);
+            updateFileList();
+            if (uploadedFiles.length === 0) {
+                generateBtn.disabled = true;
+            }
+        }
+
+        // Difficulty tag selection
+        document.querySelectorAll('.difficulty-tag').forEach(tag => {
+            tag.addEventListener('click', () => {
+                tag.classList.toggle('active');
+            });
+        });
+
+        // Generate QA Pairs
+        generateBtn.addEventListener('click', startGeneration);
+
+        async function startGeneration() {
+            generateBtn.disabled = true;
+            emptyState.style.display = 'none';
+            resultsList.innerHTML = '';
+            qaQueue = [];
+            totalQAs = 0;
+            qaCount.textContent = '0';
+            progressPercent.textContent = '0%';
+            
+            // Start timer
+            startTime = Date.now();
+            timerInterval = setInterval(updateTimer, 1000);
+
+            const ws = new WebSocket(`ws://${window.location.host}/ws/generate`);
+            
+            // Send configuration when connection opens
+            ws.onopen = () => {
+                const questionsPerChunk = parseInt(document.getElementById('questionsPerChunk').value) || 5;
+                ws.send(JSON.stringify({
+                    questionsPerChunk: questionsPerChunk
+                }));
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+
+                if (data.type === 'progress') {
+                    if (data.current && data.total) {
+                        const percent = Math.round((data.current / data.total) * 100);
+                        progressPercent.textContent = percent + '%';
+                    }
+                } else if (data.type === 'qa_created') {
+                    qaQueue.push(data.qa);
+                    if (!isDisplaying) {
+                        startDisplayQueue();
+                    }
+                } else if (data.type === 'complete') {
+                    showStatus(data.message, 'success');
+                    downloadBtn.style.display = 'block';
+                    downloadBtnTop.style.display = 'block';
+                    
+                    // Show assessment section after QA generation completes
+                    document.getElementById('assessmentSection').style.display = 'block';
+                    
+                    // Show view toggle buttons
+                    document.getElementById('viewToggleButtons').style.display = 'flex';
+                    
+                    // Wait for queue to finish
+                    const checkQueue = setInterval(() => {
+                        if (qaQueue.length === 0 && !isDisplaying) {
+                            clearInterval(checkQueue);
+                            clearInterval(timerInterval);
+                            // Set progress to 100% when complete
+                            progressPercent.textContent = '100%';
+                        }
+                    }, 100);
+                } else if (data.type === 'error') {
+                    showStatus('Error: ' + data.message, 'error');
+                    generateBtn.disabled = false;
+                    clearInterval(timerInterval);
+                    stopDisplayQueue();
+                }
+            };
+
+            ws.onerror = (error) => {
+                showStatus('WebSocket error occurred', 'error');
+                generateBtn.disabled = false;
+                clearInterval(timerInterval);
+                stopDisplayQueue();
+            };
+        }
+
+        function startDisplayQueue() {
+            if (isDisplaying) return;
+            isDisplaying = true;
+            
+            displayInterval = setInterval(() => {
+                if (qaQueue.length > 0) {
+                    const qa = qaQueue.shift();
+                    displayQA(qa);
+                } else {
+                    isDisplaying = false;
+                    clearInterval(displayInterval);
+                }
+            }, 200);
+        }
+
+        function stopDisplayQueue() {
+            isDisplaying = false;
+            if (displayInterval) {
+                clearInterval(displayInterval);
+            }
+            qaQueue = [];
+        }
+
+        function displayQA(qa) {
+            totalQAs++;
+            qaCount.textContent = totalQAs;
+            
+            const qaHtml = `
+                <div class="result-item" style="animation: slideInFast 0.2s ease-out;">
+                    <div class="result-question">Q: ${qa.question}</div>
+                    <div class="result-answer">A: ${qa.answer}</div>
+                    <div class="result-meta">
+                        <span class="badge badge-${qa.difficulty}">${qa.difficulty}</span>
+                        <span>📄 ${qa.source_path.split('/').pop()}</span>
+                    </div>
+                </div>
+            `;
+            resultsList.insertAdjacentHTML('beforeend', qaHtml);
+            
+            // Auto-scroll to bottom
+            if (resultsScrollContainer) {
+                resultsScrollContainer.scrollTop = resultsScrollContainer.scrollHeight;
+            }
+        }
+
+        function updateTimer() {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            timer.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        downloadBtn.addEventListener('click', () => {
+            window.location.href = '/api/download';
+        });
+
+        downloadBtnTop.addEventListener('click', () => {
+            window.location.href = '/api/download';
+        });
+
+        clearBtn.addEventListener('click', async () => {
+            if (confirm('Clear all uploaded documents and results?')) {
+                try {
+                    await fetch('/api/clear', { method: 'DELETE' });
+                    uploadedFiles = [];
+                    updateFileList();
+                    generateBtn.disabled = true;
+                    resultsList.innerHTML = '';
+                    emptyState.style.display = 'block';
+                    downloadBtn.style.display = 'none';
+                    downloadBtnTop.style.display = 'none';
+                    qaCount.textContent = '0';
+                    timer.textContent = '00:00';
+                    progressPercent.textContent = '0%';
+                    totalQAs = 0;
+                    showStatus('All data cleared', 'success');
+                } catch (error) {
+                    showStatus('Failed to clear data: ' + error.message, 'error');
+                }
+            }
+        });
+
+        function showStatus(message, type) {
+            statusMessage.className = `status-message status-${type}`;
+            statusMessage.textContent = message;
+            statusMessage.style.display = 'block';
+            setTimeout(() => {
+                statusMessage.style.display = 'none';
+            }, 5000);
+        }
+
+        // Language switching
+        let currentLang = 'en';
+        const langToggleBtn = document.getElementById('langToggleBtn');
+        let lastSummary = null;  // Store last summary for re-rendering
+        
+        function switchLanguage(lang) {
+            currentLang = lang;
+            
+            // Update the toggle button to show the opposite language
+            if (lang === 'en') {
+                langToggleBtn.textContent = '🌐 中文';
+                langToggleBtn.dataset.lang = 'en';
+            } else {
+                langToggleBtn.textContent = '🌐 English';
+                langToggleBtn.dataset.lang = 'zh';
+            }
+            
+            // Update all translatable elements
+            document.querySelectorAll('[data-en][data-zh]').forEach(el => {
+                const text = lang === 'en' ? el.dataset.en : el.dataset.zh;
+                if (text && el.id !== 'langToggleBtn') {  // Don't translate the toggle button itself
+                    if (el.tagName === 'BUTTON') {
+                        el.textContent = text;
+                    } else if (el.tagName === 'SPAN' || el.tagName === 'DIV' || el.tagName === 'H1' || el.tagName === 'P' || el.tagName === 'LABEL') {
+                        el.textContent = text;
+                    }
+                }
+            });
+            
+            // Re-render summary view if it's currently displayed and we have data
+            if (currentView === 'summary' && lastSummary) {
+                displaySummaryView(lastSummary);
+            }
+        }
+        
+        // Language toggle button click handler
+        langToggleBtn.addEventListener('click', () => {
+            const newLang = currentLang === 'en' ? 'zh' : 'en';
+            switchLanguage(newLang);
+        });
+
+        // Collapsible configuration
+        const configHeader = document.getElementById('configHeader');
+        const configContent = document.getElementById('configContent');
+        const configToggle = configHeader.querySelector('.config-toggle');
+        
+        configHeader.addEventListener('click', () => {
+            configContent.classList.toggle('collapsed');
+            configToggle.classList.toggle('collapsed');
+        });
+
+        // Logout functionality
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            const confirmMsg = '确定要退出吗？';
+            
+            if (confirm(confirmMsg)) {
+                sessionStorage.removeItem('isLoggedIn');
+                window.location.href = '/login';
+            }
+        });
+
+        // View switching
+        const viewQABtn = document.getElementById('viewQABtn');
+        const viewAssessmentBtn = document.getElementById('viewAssessmentBtn');
+        const viewSummaryBtn = document.getElementById('viewSummaryBtn');
+        const assessmentResultsList = document.getElementById('assessmentResultsList');
+        const assessmentSummaryView = document.getElementById('assessmentSummaryView');
+
+        let currentView = 'qa';
+        let assessmentResultsData = [];
+
+        function switchView(view) {
+            currentView = view;
+            
+            // Update button states
+            [viewQABtn, viewAssessmentBtn, viewSummaryBtn].forEach(btn => btn.classList.remove('active'));
+            
+            // Hide all views
+            resultsList.style.display = 'none';
+            assessmentResultsList.style.display = 'none';
+            assessmentSummaryView.style.display = 'none';
+            
+            // Show selected view
+            if (view === 'qa') {
+                viewQABtn.classList.add('active');
+                resultsList.style.display = 'block';
+            } else if (view === 'assessment') {
+                viewAssessmentBtn.classList.add('active');
+                assessmentResultsList.style.display = 'block';
+            } else if (view === 'summary') {
+                viewSummaryBtn.classList.add('active');
+                assessmentSummaryView.style.display = 'block';
+            }
+        }
+
+        viewQABtn.addEventListener('click', () => switchView('qa'));
+        viewAssessmentBtn.addEventListener('click', () => switchView('assessment'));
+        viewSummaryBtn.addEventListener('click', () => switchView('summary'));
+
+        // Assessment functionality
+        const startAssessmentBtn = document.getElementById('startAssessmentBtn');
+        const assessmentProgress = document.getElementById('assessmentProgress');
+        const assessmentProgressFill = document.getElementById('assessmentProgressFill');
+        const assessmentStatus = document.getElementById('assessmentStatus');
+        const assessmentResults = document.getElementById('assessmentResults');
+        const assessmentSummary = document.getElementById('assessmentSummary');
+        const downloadReportBtn = document.getElementById('downloadReportBtn');
+
+        startAssessmentBtn.addEventListener('click', async () => {
+            const endpoint = document.getElementById('ragEndpoint').value.trim();
+            
+            if (!endpoint) {
+                showStatus('Please enter RAG endpoint URL', 'error');
+                return;
+            }
+
+            // Gather parameters
+            const params = {
+                endpoint_url: endpoint,
+                login_url: document.getElementById('loginUrl').value.trim() || null,
+                username: document.getElementById('ragUsername').value.trim() || null,
+                password: document.getElementById('ragPassword').value.trim() || null,
+                max_samples: document.getElementById('maxSamples').value ? parseInt(document.getElementById('maxSamples').value) : null
+            };
+
+            // Switch to assessment view and clear results
+            switchView('assessment');
+            assessmentResultsList.innerHTML = '';
+            assessmentResultsData = [];
+            
+            // Show progress
+            startAssessmentBtn.disabled = true;
+            assessmentProgress.style.display = 'block';
+            assessmentResults.style.display = 'none';
+            assessmentProgressFill.style.width = '0%';
+            assessmentStatus.textContent = 'Starting assessment...';
+            
+            // Update dashboard to show assessment progress
+            progressPercent.textContent = '0%';
+
+            try {
+                const response = await fetch('/api/assess', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(params)
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (!line.trim() || !line.startsWith('data: ')) continue;
+                        
+                        try {
+                            const data = JSON.parse(line.substring(6));
+                            
+                            if (data.type === 'progress') {
+                                const percent = Math.round((data.current / data.total) * 100);
+                                assessmentProgressFill.style.width = percent + '%';
+                                assessmentStatus.textContent = `${data.message} (${data.current}/${data.total})`;
+                                progressPercent.textContent = percent + '%';
+                            } else if (data.type === 'result') {
+                                // Display individual assessment result
+                                displayAssessmentResult(data.result);
+                                assessmentResultsData.push(data.result);
+                            } else if (data.type === 'complete') {
+                                assessmentProgressFill.style.width = '100%';
+                                assessmentStatus.textContent = 'Assessment complete!';
+                                progressPercent.textContent = '100%';
+                                lastSummary = data.summary;  // Store for language switching
+                                displayAssessmentResults(data.summary);
+                                displaySummaryView(data.summary);
+                                assessmentResults.style.display = 'block';
+                                downloadReportBtn.style.display = 'block';
+                                showStatus('Assessment completed successfully!', 'success');
+                            } else if (data.type === 'error') {
+                                assessmentStatus.textContent = 'Error: ' + data.message;
+                                assessmentSummary.innerHTML = `<div class="assessment-error">${data.message}</div>`;
+                                assessmentResults.style.display = 'block';
+                                showStatus('Assessment failed: ' + data.message, 'error');
+                            }
+                        } catch (e) {
+                            console.error('Error parsing SSE data:', e);
+                        }
+                    }
+                }
+            } catch (error) {
+                assessmentStatus.textContent = 'Error: ' + error.message;
+                showStatus('Assessment failed: ' + error.message, 'error');
+            } finally {
+                startAssessmentBtn.disabled = false;
+            }
+        });
+
+        function displayAssessmentResult(result) {
+            const getScoreClass = (score) => {
+                if (score >= 80) return 'excellent';
+                if (score >= 60) return 'good';
+                return 'poor';
+            };
+
+            const scoreClass = getScoreClass(result.overall_score);
+            
+            const resultHtml = `
+                <div class="assessment-result-item ${scoreClass}" style="animation: slideInFast 0.2s ease-out;">
+                    <div class="assessment-result-question">Q: ${result.question}</div>
+                    <div class="assessment-result-response">
+                        <strong>Expected:</strong> ${result.expected_answer || 'N/A'}<br>
+                        <strong>Response:</strong> ${result.target_response || result.error || 'No response'}
+                    </div>
+                    <div class="assessment-result-scores">
+                        <span class="assessment-score-badge">Accuracy: ${result.accuracy_score}</span>
+                        <span class="assessment-score-badge">Relevance: ${result.relevance_score}</span>
+                        <span class="assessment-score-badge">Completeness: ${result.completeness_score}</span>
+                        <span class="assessment-score-badge">Overall: ${result.overall_score.toFixed(1)}</span>
+                        <span class="assessment-score-badge">⏱️ ${result.response_time_ms.toFixed(0)}ms</span>
+                    </div>
+                    ${result.evaluation_reasoning ? `<div style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">💡 ${result.evaluation_reasoning}</div>` : ''}
+                </div>
+            `;
+            
+            assessmentResultsList.insertAdjacentHTML('beforeend', resultHtml);
+            
+            // Auto-scroll to bottom if in assessment view
+            if (currentView === 'assessment') {
+                const container = document.querySelector('.results-scroll-container');
+                if (container) {
+                    container.scrollTop = container.scrollHeight;
+                }
+            }
+        }
+
+        function displayAssessmentResults(summary) {
+            const getScoreClass = (score) => {
+                if (score >= 80) return 'excellent';
+                if (score >= 60) return 'good';
+                return 'poor';
+            };
+
+            // Update summary in left panel
+            assessmentSummary.innerHTML = `
+                <div class="assessment-summary-grid">
+                    <div class="assessment-metric">
+                        <div class="assessment-metric-label" data-en="Total Questions" data-zh="总问题数">Total Questions</div>
+                        <div class="assessment-metric-value">${summary.total_questions || 0}</div>
+                    </div>
+                    <div class="assessment-metric">
+                        <div class="assessment-metric-label" data-en="Answered" data-zh="已回答">Answered</div>
+                        <div class="assessment-metric-value">${summary.answered_questions || 0}</div>
+                    </div>
+                    <div class="assessment-metric">
+                        <div class="assessment-metric-label" data-en="Avg Accuracy" data-zh="平均准确度">Avg Accuracy</div>
+                        <div class="assessment-metric-value ${getScoreClass(summary.avg_accuracy || 0)}">${(summary.avg_accuracy || 0).toFixed(1)}</div>
+                    </div>
+                    <div class="assessment-metric">
+                        <div class="assessment-metric-label" data-en="Avg Relevance" data-zh="平均相关性">Avg Relevance</div>
+                        <div class="assessment-metric-value ${getScoreClass(summary.avg_relevance || 0)}">${(summary.avg_relevance || 0).toFixed(1)}</div>
+                    </div>
+                    <div class="assessment-metric">
+                        <div class="assessment-metric-label" data-en="Avg Completeness" data-zh="平均完整性">Avg Completeness</div>
+                        <div class="assessment-metric-value ${getScoreClass(summary.avg_completeness || 0)}">${(summary.avg_completeness || 0).toFixed(1)}</div>
+                    </div>
+                    <div class="assessment-metric">
+                        <div class="assessment-metric-label" data-en="Overall Score" data-zh="总体得分">Overall Score</div>
+                        <div class="assessment-metric-value ${getScoreClass(summary.avg_overall || 0)}">${(summary.avg_overall || 0).toFixed(1)}</div>
+                    </div>
+                    <div class="assessment-metric">
+                        <div class="assessment-metric-label" data-en="Avg Response Time" data-zh="平均响应时间">Avg Response Time</div>
+                        <div class="assessment-metric-value">${(summary.avg_response_time || 0).toFixed(0)}ms</div>
+                    </div>
+                    <div class="assessment-metric">
+                        <div class="assessment-metric-label" data-en="Excellent (≥80)" data-zh="优秀 (≥80)">Excellent (≥80)</div>
+                        <div class="assessment-metric-value excellent">${summary.excellent || 0}</div>
+                    </div>
+                    <div class="assessment-metric">
+                        <div class="assessment-metric-label" data-en="Good (60-79)" data-zh="良好 (60-79)">Good (60-79)</div>
+                        <div class="assessment-metric-value good">${summary.good || 0}</div>
+                    </div>
+                    <div class="assessment-metric">
+                        <div class="assessment-metric-label" data-en="Poor (<60)" data-zh="较差 (<60)">Poor (<60)</div>
+                        <div class="assessment-metric-value poor">${summary.poor || 0}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function displaySummaryView(summary) {
+            const getScoreClass = (score) => {
+                if (score >= 80) return 'excellent';
+                if (score >= 60) return 'good';
+                return 'poor';
+            };
+
+            // Get translations based on current language
+            const t = currentLang === 'zh' ? {
+                title: '📈 评估摘要',
+                totalQuestions: '总问题数',
+                answered: '已回答',
+                answerRate: '回答率',
+                avgAccuracy: '平均准确度',
+                avgRelevance: '平均相关性',
+                avgCompleteness: '平均完整性',
+                overallScore: '总体得分',
+                avgResponseTime: '平均响应时间',
+                excellent: '优秀 (≥80)',
+                good: '良好 (60-79)',
+                poor: '较差 (<60)',
+                downloadReport: '📄 下载详细报告',
+                poorPerformers: '⚠️ 低分问题列表',
+                noPoorPerformers: '✅ 没有低分问题！所有问题得分都在60分以上。',
+                question: '问题',
+                expectedAnswer: '期望答案',
+                targetResponse: '实际响应',
+                score: '得分',
+                reasoning: '评估理由'
+            } : {
+                title: '📈 Assessment Summary',
+                totalQuestions: 'Total Questions',
+                answered: 'Answered',
+                answerRate: 'Answer Rate',
+                avgAccuracy: 'Avg Accuracy',
+                avgRelevance: 'Avg Relevance',
+                avgCompleteness: 'Avg Completeness',
+                overallScore: 'Overall Score',
+                avgResponseTime: 'Avg Response Time',
+                excellent: 'Excellent (≥80)',
+                good: 'Good (60-79)',
+                poor: 'Poor (<60)',
+                downloadReport: '📄 Download Detailed Report',
+                poorPerformers: '⚠️ Poor Performers',
+                noPoorPerformers: '✅ No poor performers! All questions scored above 60.',
+                question: 'Question',
+                expectedAnswer: 'Expected Answer',
+                targetResponse: 'Target Response',
+                score: 'Score',
+                reasoning: 'Reasoning'
+            };
+
+            // Filter poor performers from assessment results
+            const poorPerformers = assessmentResultsData.filter(r => r.overall_score < 60);
+
+            let poorPerformersHtml = '';
+            if (poorPerformers.length > 0) {
+                poorPerformersHtml = `
+                    <div style="margin-top: 32px;">
+                        <h3 style="color: var(--error); margin-bottom: 16px;">${t.poorPerformers} (${poorPerformers.length})</h3>
+                        ${poorPerformers.map((result, idx) => `
+                            <div class="assessment-result-item poor" style="margin-bottom: 16px;">
+                                <div style="font-weight: 600; margin-bottom: 8px;">#${idx + 1} - ${t.score}: ${result.overall_score.toFixed(1)}</div>
+                                <div class="assessment-result-question">${t.question}: ${result.question}</div>
+                                <div class="assessment-result-response">
+                                    <strong>${t.expectedAnswer}:</strong> ${result.expected_answer || 'N/A'}<br>
+                                    <strong>${t.targetResponse}:</strong> ${result.target_response || result.error || 'No response'}
+                                </div>
+                                <div class="assessment-result-scores">
+                                    <span class="assessment-score-badge">${t.avgAccuracy.split(' ')[1] || 'Accuracy'}: ${result.accuracy_score}</span>
+                                    <span class="assessment-score-badge">${t.avgRelevance.split(' ')[1] || 'Relevance'}: ${result.relevance_score}</span>
+                                    <span class="assessment-score-badge">${t.avgCompleteness.split(' ')[1] || 'Completeness'}: ${result.completeness_score}</span>
+                                    <span class="assessment-score-badge">⏱️ ${result.response_time_ms.toFixed(0)}ms</span>
+                                </div>
+                                ${result.evaluation_reasoning ? `<div style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">💡 ${t.reasoning}: ${result.evaluation_reasoning}</div>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else {
+                poorPerformersHtml = `
+                    <div style="margin-top: 32px; padding: 20px; background: rgba(52, 199, 89, 0.1); border-radius: 12px; border-left: 4px solid var(--success);">
+                        <div style="font-size: 16px; font-weight: 600; color: var(--success);">${t.noPoorPerformers}</div>
+                    </div>
+                `;
+            }
+
+            assessmentSummaryView.innerHTML = `
+                <h2 style="margin-bottom: 24px; color: var(--primary);">${t.title}</h2>
+                <div class="assessment-summary-grid">
+                    <div class="assessment-metric">
+                        <div class="assessment-metric-label">${t.totalQuestions}</div>
+                        <div class="assessment-metric-value">${summary.total_questions || 0}</div>
+                    </div>
+                    <div class="assessment-metric">
+                        <div class="assessment-metric-label">${t.answered}</div>
+                        <div class="assessment-metric-value">${summary.answered_questions || 0}</div>
+                    </div>
+                    <div class="assessment-metric">
+                        <div class="assessment-metric-label">${t.answerRate}</div>
+                        <div class="assessment-metric-value">${((summary.answered_questions / summary.total_questions) * 100).toFixed(1)}%</div>
+                    </div>
+                    <div class="assessment-metric">
+                        <div class="assessment-metric-label">${t.avgAccuracy}</div>
+                        <div class="assessment-metric-value ${getScoreClass(summary.avg_accuracy || 0)}">${(summary.avg_accuracy || 0).toFixed(1)}</div>
+                    </div>
+                    <div class="assessment-metric">
+                        <div class="assessment-metric-label">${t.avgRelevance}</div>
+                        <div class="assessment-metric-value ${getScoreClass(summary.avg_relevance || 0)}">${(summary.avg_relevance || 0).toFixed(1)}</div>
+                    </div>
+                    <div class="assessment-metric">
+                        <div class="assessment-metric-label">${t.avgCompleteness}</div>
+                        <div class="assessment-metric-value ${getScoreClass(summary.avg_completeness || 0)}">${(summary.avg_completeness || 0).toFixed(1)}</div>
+                    </div>
+                    <div class="assessment-metric">
+                        <div class="assessment-metric-label">${t.overallScore}</div>
+                        <div class="assessment-metric-value ${getScoreClass(summary.avg_overall || 0)}">${(summary.avg_overall || 0).toFixed(1)}</div>
+                    </div>
+                    <div class="assessment-metric">
+                        <div class="assessment-metric-label">${t.avgResponseTime}</div>
+                        <div class="assessment-metric-value">${(summary.avg_response_time || 0).toFixed(0)}ms</div>
+                    </div>
+                    <div class="assessment-metric">
+                        <div class="assessment-metric-label">${t.excellent}</div>
+                        <div class="assessment-metric-value excellent">${summary.excellent || 0}</div>
+                    </div>
+                    <div class="assessment-metric">
+                        <div class="assessment-metric-label">${t.good}</div>
+                        <div class="assessment-metric-value good">${summary.good || 0}</div>
+                    </div>
+                    <div class="assessment-metric">
+                        <div class="assessment-metric-label">${t.poor}</div>
+                        <div class="assessment-metric-value poor">${summary.poor || 0}</div>
+                    </div>
+                </div>
+                <div style="margin-top: 24px;">
+                    <button class="btn btn-secondary" onclick="document.getElementById('downloadReportBtn').click()">
+                        ${t.downloadReport}
+                    </button>
+                </div>
+                ${poorPerformersHtml}
+            `;
+        }
+
+        downloadReportBtn.addEventListener('click', () => {
+            window.location.href = '/api/download-report';
+        });
+    </script>
+</body>
+</html>

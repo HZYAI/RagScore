@@ -1,0 +1,123 @@
+import json
+import re
+import uuid
+from typing import List, Dict, Any
+
+import dashscope
+from dashscope import Generation
+
+from . import config
+
+def safe_json_parse(raw: str) -> Dict[str, Any]:
+    """Safely parses a JSON string, cleaning and attempting to fix common errors."""
+    if not raw:
+        return {}
+
+    # Clean control characters
+    cleaned = re.sub(r"[\x00-\x1f]+", " ", raw)
+
+    # Attempt to complete truncated JSON
+    if cleaned.count("{") > cleaned.count("}"):
+        cleaned += "}" * (cleaned.count("{") - cleaned.count("}"))
+    if cleaned.count("[") > cleaned.count("]"):
+        cleaned += "]" * (cleaned.count("[") - cleaned.count("]"))
+
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        # Fallback for common errors like missing commas
+        repaired = re.sub(r'("\s*\{)', '", \{', cleaned)
+        repaired = re.sub(r'(\})(\s*")', r'\1, \2', repaired)
+        try:
+            return json.loads(repaired)
+        except Exception:
+            print(f"⚠️ JSON parsing failed. Preview: {repr(cleaned[:400])}")
+            return {}
+
+def detect_language(text: str) -> str:
+    """Detect if text is primarily Chinese or English."""
+    # Count Chinese characters (CJK Unified Ideographs)
+    chinese_chars = len([c for c in text if '\u4e00' <= c <= '\u9fff'])
+    total_chars = len([c for c in text if c.strip()])
+    
+    # If more than 30% are Chinese characters, consider it Chinese
+    if total_chars > 0 and (chinese_chars / total_chars) > 0.3:
+        return 'zh'
+    return 'en'
+
+def generate_qa_for_chunk(chunk_text: str, difficulty: str, n: int = 2) -> List[Dict[str, Any]]:
+    """Generates question-answer pairs for a given text chunk using DashScope LLM."""
+    dashscope.api_key = config.DASHSCOPE_API_KEY
+    
+    # Detect language
+    lang = detect_language(chunk_text)
+    
+    if lang == 'zh':
+        # Chinese prompts
+        difficulty_map = {'easy': '简单', 'medium': '中等', 'hard': '困难'}
+        diff_zh = difficulty_map.get(difficulty, difficulty)
+        
+        system_prompt = (
+            "你是一个细心的数据集生成器。"
+            "生成的问题必须严格基于提供的上下文来回答。"
+            "返回一个包含'items'数组的JSON对象。"
+        )
+
+        user_prompt = f"""
+上下文：
+\"\"\"{chunk_text}\"\"\"
+
+任务：
+- 生成 {n} 个{diff_zh}难度的问答对。
+- 每个答案必须完全基于上下文支持。
+- 提供简短的理由（1-2句话）和引用的支持片段。
+- 输出JSON对象：{{"items": [{{"question": "...", "answer": "...", "rationale": "...", "support_span": "..."}}]}}。
+""".strip()
+    else:
+        # English prompts
+        system_prompt = (
+            "You are a careful dataset generator. "
+            "Generate questions strictly answerable from the provided context. "
+            "Return a JSON object with an 'items' array."
+        )
+
+        user_prompt = f"""
+Context:
+\"\"\"{chunk_text}\"\"\"
+
+Task:
+- Generate {n} {difficulty} question-answer pairs.
+- Each answer must be fully supported by the context.
+- Provide a short rationale (1–2 sentences) and a quoted supporting span.
+- Output a JSON object: {{"items": [{{"question": "...", "answer": "...", "rationale": "...", "support_span": "..."}}]}}.
+""".strip()
+
+    try:
+        response = Generation.call(
+            model=config.DASHSCOPE_MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=config.DASHSCOPE_TEMPERATURE,
+            result_format="json_object"  # Use json_object for more reliable JSON output
+        )
+        raw_content = response.output["choices"][0]["message"]["content"]
+        data = safe_json_parse(raw_content)
+        items = data.get("items", [])
+    except Exception as e:
+        print(f"⚠️ Model API call failed: {e}")
+        items = []
+
+    processed_qas = []
+    for item in items:
+        if item.get("question") and item.get("answer"):
+            processed_qas.append({
+                "id": str(uuid.uuid4()),
+                "question": (item.get("question") or "").strip(),
+                "answer": (item.get("answer") or "").strip(),
+                "rationale": (item.get("rationale") or "").strip(),
+                "support_span": (item.get("support_span") or "").strip(),
+            })
+            
+    return processed_qas

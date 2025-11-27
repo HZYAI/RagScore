@@ -1,0 +1,51 @@
+# Environment variables
+.env
+
+# Virtual environment
+venv/
+env/
+ENV/
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# IDE files
+.idea/
+.vscode/
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Data and output
+/data/docs/*
+!/data/docs/.gitkeep
+/output/*
+!/output/.gitkeep
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Temp files
+temp_notebook.py
+
+# Logs
+*.log
+app.log
+
+# NLTK data (can be downloaded)
+nltk_data/
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAGScore - Sign In</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #007AFF;
+            --primary-hover: #0051D5;
+            --accent-purple: #8B5CF6;
+            --accent-pink: #EC4899;
+            --card-bg: #FFFFFF;
+            --text-primary: #1D1D1F;
+            --text-secondary: #6B7280;
+            --border: #E5E7EB;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .login-container {
+            display: flex;
+            height: 100vh;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent-purple) 50%, var(--accent-pink) 100%);
+        }
+
+        .login-left {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px;
+            color: white;
+            position: relative;
+        }
+
+        .login-logo {
+            font-size: 72px;
+            font-weight: 700;
+            margin-bottom: 32px;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .login-tagline {
+            font-size: 28px;
+            margin-bottom: 16px;
+            opacity: 0.95;
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        .login-description {
+            font-size: 18px;
+            opacity: 0.85;
+            max-width: 500px;
+            text-align: center;
+            line-height: 1.8;
+            animation: fadeInUp 0.8s ease-out 0.4s both;
+        }
+
+        .features {
+            margin-top: 48px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px 48px;
+            max-width: 500px;
+            animation: fadeInUp 0.8s ease-out 0.6s both;
+        }
+
+        .feature {
+            text-align: center;
+            padding: 20px 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s;
+        }
+
+        .feature:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-4px);
+        }
+
+        .feature-text {
+            font-size: 14px;
+            opacity: 0.95;
+            font-weight: 600;
+        }
+
+        .copyright {
+            position: absolute;
+            bottom: 32px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 13px;
+            opacity: 0.7;
+            text-align: center;
+            animation: fadeInUp 0.8s ease-out 0.8s both;
+            white-space: nowrap;
+        }
+
+        .login-right {
+            width: 520px;
+            background: var(--card-bg);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 80px;
+            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.1);
+            animation: slideInRight 0.6s ease-out;
+        }
+
+        .lang-switch {
+            position: absolute;
+            top: 32px;
+            right: 32px;
+            display: flex;
+            gap: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            padding: 4px;
+        }
+
+        .lang-btn {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: white;
+            transition: all 0.2s;
+        }
+
+        .lang-btn.active {
+            background: white;
+            color: var(--primary);
+        }
+
+        .login-form {
+            width: 100%;
+        }
+
+        .login-title {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .login-subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 48px;
+        }
+
+        .form-group {
+            margin-bottom: 28px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 16px 18px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 15px;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent-purple) 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
+            margin-top: 12px;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(0, 122, 255, 0.4);
+        }
+
+        .demo-hint {
+            text-align: center;
+            margin-top: 28px;
+            padding: 16px;
+            background: #F8F9FA;
+            border-radius: 10px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .demo-hint strong {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-left">
+            <div class="lang-switch">
+                <button class="lang-btn active" data-lang="en">EN</button>
+                <button class="lang-btn" data-lang="zh">中文</button>
+            </div>
+            
+            <div class="login-logo" data-en="HZY AI RAGScore" data-zh="RAGScore - RAG 评分系统">HZY AI RAGScore</div>
+            <div class="login-tagline" data-en="AI-Powered RAG Evaluation" data-zh="AI驱动的RAG评估平台">AI-Powered RAG Evaluation</div>
+            <div class="login-description" data-en="Complete RAG assessment platform with intelligent QA generation, real-time evaluation, and bilingual support for English and Chinese documents" data-zh="完整的RAG评估平台，包含智能问答对高速生成，实时全方位RAG系统评估，中英文双语支持。">
+                Complete RAG assessment platform with intelligent QA generation, real-time evaluation, and bilingual support for English and Chinese documents
+            </div>
+            
+            <div class="features">
+                <div class="feature">
+                    <div class="feature-text" data-en="Bilingual Support" data-zh="双语支持">Bilingual Support</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-text" data-en="Real-time Assessment" data-zh="实时评估">Real-time Assessment</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-text" data-en="Advanced Metrics" data-zh="高级指标">Advanced Metrics</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-text" data-en="Configurable" data-zh="可配置">Configurable</div>
+                </div>
+            </div>
+            
+            <div class="copyright" data-en="© HZY AI 2025" data-zh="© 至元人工智能 2025">© HZY AI 2025</div>
+        </div>
+        
+        <div class="login-right">
+            <div style="text-align: center; margin-bottom: 32px;">
+                <img src="/static/logo.png" alt="Logo" style="height: 60px; object-fit: contain;" onerror="this.style.display='none'">
+            </div>
+            <form class="login-form" id="loginForm">
+                <h2 class="login-title" data-en="Sign In" data-zh="登录">Sign In</h2>
+                <p class="login-subtitle" data-en="Enter your credentials to continue" data-zh="输入您的账户">Enter your credentials to continue</p>
+                
+                <div class="form-group">
+                    <label class="form-label" data-en="Username" data-zh="用户名">Username</label>
+                    <input type="text" class="form-input" id="username" data-placeholder-en="demo" data-placeholder-zh="demo" placeholder="demo" required autofocus>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" data-en="Password" data-zh="密码">Password</label>
+                    <input type="password" class="form-input" id="password" data-placeholder-en="demo" data-placeholder-zh="demo" placeholder="demo" required>
+                </div>
+                
+                <button type="submit" class="login-btn" data-en="Sign In" data-zh="登录">Sign In</button>
+                
+                <div class="demo-hint">
+                    <span data-en="Demo credentials: " data-zh="演示账号信息：">Demo credentials: </span>
+                    <strong>demo / demo</strong>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Language switching
+        const translations = {
+            en: {},
+            zh: {}
+        };
+
+        let currentLang = 'en';
+
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const lang = btn.dataset.lang;
+                if (lang === currentLang) return;
+                
+                currentLang = lang;
+                
+                // Update active state
+                document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // Update all translatable elements
+                document.querySelectorAll('[data-en][data-zh]').forEach(el => {
+                    const text = lang === 'en' ? el.dataset.en : el.dataset.zh;
+                    if (text) {
+                        if (el.tagName === 'INPUT') {
+                            // Update placeholder for inputs
+                            const placeholderAttr = lang === 'en' ? 'placeholderEn' : 'placeholderZh';
+                            if (el.dataset[placeholderAttr]) {
+                                el.placeholder = el.dataset[placeholderAttr];
+                            }
+                        } else if (el.tagName === 'BUTTON') {
+                            el.textContent = text;
+                        } else if (el.tagName === 'SPAN' || el.tagName === 'DIV' || el.tagName === 'H2' || el.tagName === 'P' || el.tagName === 'LABEL') {
+                            el.textContent = text;
+                        }
+                    }
+                });
+            });
+        });
+
+        // Login form handling
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // Simple demo authentication
+            if (username === 'demo' && password === 'demo') {
+                // Store login state
+                sessionStorage.setItem('isLoggedIn', 'true');
+                // Redirect to main app
+                window.location.href = '/';
+            } else {
+                alert(currentLang === 'en' ? 'Invalid credentials. Please use demo/demo' : '凭据无效。请使用 demo/demo');
+            }
+        });
+    </script>
+</body>
+</html>
