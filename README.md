@@ -1,10 +1,14 @@
-# RAGScore
+<div align="center">
+  <img src="RAGScore.png" alt="RAGScore Logo" width="400"/>
+  
+  [![PyPI version](https://badge.fury.io/py/ragscore.svg)](https://pypi.org/project/ragscore/)
+  [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+  [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+  
+  **Generate high-quality QA datasets to evaluate your RAG systems**
+</div>
 
-[![PyPI version](https://badge.fury.io/py/ragscore.svg)](https://pypi.org/project/ragscore/)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-
-> Generate high-quality QA datasets to evaluate your RAG systems
+---
 
 RAGScore automatically generates question-answer pairs from your documents, which you can then use to benchmark and evaluate your RAG (Retrieval-Augmented Generation) systems.
 
