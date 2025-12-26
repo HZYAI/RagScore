@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed hardcoded paths in test files
 - Fixed duplicate imports in web/app.py
 
-## [0.1.0] - 2024-12-26
+## [0.1.0] - 2025-12-26
 
 ### Added
 - **Part 1: QA Generation**
@@ -63,7 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| 0.1.0 | 2024-12-26 | Initial release with QA generation and assessment |
+| 0.1.0 | 2025-12-26 | Initial release with QA generation and assessment |
 
 ## Upgrade Guide
 
