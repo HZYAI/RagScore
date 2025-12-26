@@ -26,7 +26,7 @@ def safe_json_parse(raw: str) -> Dict[str, Any]:
         return json.loads(cleaned)
     except json.JSONDecodeError:
         # Fallback for common errors like missing commas
-        repaired = re.sub(r'("\s*\{)', '", \{', cleaned)
+        repaired = re.sub(r'("\s*\{)', r'", \{', cleaned)
         repaired = re.sub(r'(\})(\s*")', r'\1, \2', repaired)
         try:
             return json.loads(repaired)
