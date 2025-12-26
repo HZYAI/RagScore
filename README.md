@@ -54,7 +54,7 @@ export DASHSCOPE_API_KEY="your-dashscope-key"
 
 ```bash
 # Place documents in data/docs/, then:
-ragscore generate
+ragscore generate --docs-dir YOUR-PDF-DIRECTORY
 ```
 
 ### Output
