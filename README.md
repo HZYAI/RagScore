@@ -10,7 +10,7 @@
   <h3>The ultimate multimodal rag assessment tool.</h3>
 </div>
 <p align="center">
-   <a href="https://github.com/HZYAI/RagScore/blob/main/LICENSE"><img src="https://img.shields.io/github/license/HZYAI/RagScore" alt="License: MIT"></a>
+   <a href="https://github.com/HZYAI/RagScore/blob/main/LICENSE"><img src="https://img.shields.io/pypi/l/langchain" alt="License: MIT"></a>
 </p>
 
 **RagScore** 
