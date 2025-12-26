@@ -7,18 +7,28 @@ from .data_processing import read_docs, initialize_nltk
 from .vector_store import build_index, save_index, load_index
 from .llm import generate_qa_for_chunk
 
-def run_pipeline(force_reindex: bool = False):
-    """Executes the full QA generation pipeline."""
+def run_pipeline(docs_dir=None, force_reindex: bool = False):
+    """Executes the full QA generation pipeline.
+    
+    Args:
+        docs_dir: Path to documents directory (default: config.DOCS_DIR)
+        force_reindex: Force re-reading and re-indexing of documents
+    """
+    from pathlib import Path
+    
     # Ensure directories exist
     config.ensure_dirs()
     
     # Ensure NLTK data is ready
     initialize_nltk()
+    
+    # Use provided docs_dir or default
+    docs_path = Path(docs_dir) if docs_dir else config.DOCS_DIR
 
     # --- 1. Indexing --- 
     if force_reindex or not config.INDEX_PATH.exists():
         print("--- Starting Document Ingestion and Indexing ---")
-        docs = read_docs()
+        docs = read_docs(dir_path=docs_path)
         if not docs:
             return
         
@@ -34,6 +44,7 @@ def run_pipeline(force_reindex: bool = False):
 
     # --- 2. QA Generation --- 
     print("\n--- Starting QA Pair Generation ---")
+    
     all_qas = []
     for m in tqdm(meta, desc="Generating QAs"):
         # Skip very short chunks
