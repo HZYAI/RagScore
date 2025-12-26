@@ -25,9 +25,6 @@ RAGScore automatically generates question-answer pairs from your documents, whic
 # Basic installation through pypi
 pip install ragscore
 
-# Basic installation through source
-python -m pip install -e.
-
 # With OpenAI support
 pip install ragscore[openai]
 
