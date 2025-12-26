@@ -5,7 +5,6 @@ app = typer.Typer(
     name="ragscore",
     help="Generate high-quality QA datasets to evaluate RAG systems.",
     add_completion=False,
-    rich_markup_mode="rich",
 )
 
 
