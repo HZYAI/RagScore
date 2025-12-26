@@ -6,18 +6,20 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # --- Paths ---
-ROOT_DIR = Path(__file__).parent.parent.parent
-DATA_DIR = ROOT_DIR / "data"
+# Use current working directory for data/output (not package location)
+WORK_DIR = Path(os.getenv("RAGSCORE_WORK_DIR", Path.cwd()))
+DATA_DIR = WORK_DIR / "data"
 DOCS_DIR = DATA_DIR / "docs"
-OUTPUT_DIR = ROOT_DIR / "output"
+OUTPUT_DIR = WORK_DIR / "output"
 INDEX_PATH = OUTPUT_DIR / "index.faiss"
 META_PATH = OUTPUT_DIR / "meta.json"
 GENERATED_QAS_PATH = OUTPUT_DIR / "generated_qas.jsonl"
-ASSESSMENT_REPORT_PATH = OUTPUT_DIR / "assessment_report.xlsx"
 
-# Ensure output directory exists
-OUTPUT_DIR.mkdir(exist_ok=True)
-DOCS_DIR.mkdir(exist_ok=True)
+
+def ensure_dirs():
+    """Create necessary directories. Call this before operations that need them."""
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    DOCS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # --- Embeddings & Vector Store ---
@@ -33,17 +35,22 @@ DASHSCOPE_TEMPERATURE = 0.7
 NUM_Q_PER_CHUNK = 5  # Number of questions to generate per chunk
 DIFFICULTY_MIX = ["easy", "medium", "hard"]
 
-# --- RAG Assessment ---
-# Default endpoint configuration (can be overridden via CLI)
-RAG_ENDPOINT_URL = os.getenv("RAG_ENDPOINT_URL", "http://localhost:5000/query")
-RAG_LOGIN_URL = os.getenv("RAG_LOGIN_URL")
-RAG_USERNAME = os.getenv("RAG_USERNAME")
-RAG_PASSWORD = os.getenv("RAG_PASSWORD")
-ASSESSMENT_RATE_LIMIT = 0.05  # Delay between requests in seconds
-ASSESSMENT_TIMEOUT = 40  # Request timeout in seconds
 
-# --- API Keys ---
+# --- API Keys (lazy loading, no error at import time) ---
+def get_api_key(provider: str = "dashscope") -> str:
+    """Get API key for the specified provider."""
+    key_map = {
+        "dashscope": "DASHSCOPE_API_KEY",
+        "openai": "OPENAI_API_KEY",
+        "anthropic": "ANTHROPIC_API_KEY",
+        "groq": "GROQ_API_KEY",
+    }
+    env_var = key_map.get(provider, f"{provider.upper()}_API_KEY")
+    key = os.getenv(env_var)
+    if not key:
+        raise ValueError(f"{env_var} not found. Please set it in your environment or .env file.")
+    return key
+
+
+# Legacy support
 DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY")
-
-if not DASHSCOPE_API_KEY:
-    raise ValueError("DASHSCOPE_API_KEY not found. Please set it in your .env file.")

@@ -9,6 +9,9 @@ from .llm import generate_qa_for_chunk
 
 def run_pipeline(force_reindex: bool = False):
     """Executes the full QA generation pipeline."""
+    # Ensure directories exist
+    config.ensure_dirs()
+    
     # Ensure NLTK data is ready
     initialize_nltk()
 

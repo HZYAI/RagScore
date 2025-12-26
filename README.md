@@ -15,7 +15,7 @@ RAGScore automatically generates question-answer pairs from your documents, whic
 - 🌍 **Multi-language** - English and Chinese out of the box
 - 🤖 **Multi-provider** - OpenAI, DashScope (Qwen), or any OpenAI-compatible API
 - 🎯 **Difficulty levels** - Easy, medium, and hard questions
-- 🚀 **CLI & Web UI** - Use from command line or browser
+- 🚀 **Simple CLI** - Easy command-line interface
 - ⚡ **Fast indexing** - FAISS-powered vector search
 
 ## 🚀 Quick Start
@@ -32,7 +32,7 @@ pip install ragscore[openai]
 # With DashScope support (Chinese users)
 pip install ragscore[dashscope]
 
-# Full installation with web UI
+# All providers
 pip install ragscore[all]
 ```
 
@@ -53,10 +53,6 @@ export DASHSCOPE_API_KEY="your-dashscope-key"
 ```bash
 # Place documents in data/docs/, then:
 ragscore generate
-
-# Or use the web interface:
-python -m ragscore.web.app
-# Open http://localhost:8000
 ```
 
 ### Output
@@ -104,18 +100,6 @@ for doc in docs:
     qas = generate_qa_for_chunk(doc["text"], difficulty="medium", n=5)
     print(qas)
 ```
-
-### Web Interface
-
-```bash
-python -m ragscore.web.app
-```
-
-Features:
-- Drag & drop document upload
-- Real-time generation progress
-- Interactive QA preview
-- One-click JSON download
 
 ## ⚙️ Configuration
 
