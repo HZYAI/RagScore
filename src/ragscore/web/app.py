@@ -1,16 +1,26 @@
-import os
+"""RAGScore Web Application
+
+Provides a web interface for QA pair generation.
+"""
+
 import json
 import asyncio
+import shutil
 from pathlib import Path
 from typing import List
-from fastapi import FastAPI, UploadFile, File, WebSocket, WebSocketDisconnect, HTTPException, Request
+
+from fastapi import (
+    FastAPI,
+    UploadFile,
+    File,
+    WebSocket,
+    WebSocketDisconnect,
+    HTTPException,
+    Request,
+)
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pathlib import Path
-from typing import List
-import json
 from fastapi.middleware.cors import CORSMiddleware
-import shutil
 
 from .. import config
 from ..data_processing import read_docs, initialize_nltk

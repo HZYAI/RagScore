@@ -1,0 +1,4 @@
+# Generated output files will be saved here
+# - generated_qas.jsonl: QA pairs
+# - index.faiss: Vector index
+# - meta.json: Index metadata

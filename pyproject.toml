@@ -1,39 +1,149 @@
-[tool.poetry]
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
 name = "ragscore"
 version = "0.1.0"
-description = "A pipeline for generating QA datasets to evaluate RAG systems."
-authors = ["Your Name <you@example.com>"]
-license = "MIT"
+description = "Generate high-quality QA datasets to evaluate RAG systems"
 readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.9,<3.13"
+authors = [
+    {name = "RAGScore Team", email = "team@ragscore.dev"}
+]
+keywords = ["rag", "evaluation", "qa-generation", "llm", "nlp", "faiss"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Text Processing :: Linguistic",
+]
 
-[[tool.poetry.source]]
-name = "tsinghua"
-url = "https://mirrors.aliyun.com/pypi/simple/"
-default = true
+dependencies = [
+    "pypdf2>=3.0.1",
+    "nltk>=3.8.1",
+    "tqdm>=4.66.1",
+    "faiss-cpu>=1.7.4",
+    "numpy<2.0.0",
+    "typer[all]>=0.9.0",
+    "python-dotenv>=1.0.0",
+]
 
+[project.optional-dependencies]
+# --- LLM Providers ---
+# OpenAI (also works for Groq, Together, Grok, etc.)
+openai = [
+    "openai>=1.0.0",
+]
+# Anthropic (Claude)
+anthropic = [
+    "anthropic>=0.18.0",
+]
+# DashScope / Qwen (Chinese users)
+dashscope = [
+    "dashscope>=1.14.1",
+    "langchain-community>=0.0.31",
+    "sentence-transformers>=2.2.2",
+]
+# All cloud providers
+providers = [
+    "ragscore[openai,anthropic,dashscope]",
+]
+# --- Features ---
+# Web interface
+web = [
+    "fastapi>=0.104.1",
+    "uvicorn[standard]>=0.24.0",
+    "python-multipart>=0.0.6",
+    "websockets>=12.0",
+]
+# All features (recommended)
+all = [
+    "ragscore[providers,web]",
+]
+# Development dependencies
+dev = [
+    "pytest>=7.4.3",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.21.0",
+    "ruff>=0.1.6",
+    "black>=23.11.0",
+    "mypy>=1.7.0",
+    "pre-commit>=3.5.0",
+    "requests>=2.31.0",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.9,<3.12"
-pypdf2 = "^3.0.1"
-nltk = "^3.8.1"
-tqdm = "^4.66.1"
-sentence-transformers = "^2.2.2"
-faiss-cpu = "^1.7.4"
-dashscope = "^1.14.1"
-langchain-community = "^0.0.31"
-numpy = "^1.26.2"
-typer = {extras = ["all"], version = "^0.9.0"}
-python-dotenv = "^1.0.0"
+[project.urls]
+Homepage = "https://github.com/HZYAI/RagScore"
+Documentation = "https://github.com/HZYAI/RagScore#readme"
+Repository = "https://github.com/HZYAI/RagScore"
+Changelog = "https://github.com/HZYAI/RagScore/blob/main/CHANGELOG.md"
+"Bug Tracker" = "https://github.com/HZYAI/RagScore/issues"
 
-[tool.poetry.dev-dependencies]
-pytest = "^7.4.3"
-ruff = "^0.1.6"
-black = "^23.11.0"
-mypy = "^1.7.0"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.poetry.scripts]
+[project.scripts]
 ragscore = "ragscore.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+ragscore = ["web/templates/*.html", "web/static/*"]
+
+# Tool configurations
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py39"
+line-length = 100
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by black)
+    "B008",  # do not perform function calls in argument defaults
+]
+
+[tool.ruff.isort]
+known-first-party = ["ragscore"]
+
+[tool.black]
+line-length = 100
+target-version = ["py39", "py310", "py311", "py312"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["src/ragscore"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]

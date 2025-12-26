@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Test script to run the pipeline and see detailed errors."""
+"""Test script to run the pipeline and see detailed errors.
 
-import sys
-sys.path.insert(0, '/home/ubuntu/RAGScore/src')
+This is a manual test script, not part of the automated test suite.
+For automated tests, see the tests/ directory.
+"""
 
 print("Starting pipeline test...")
 

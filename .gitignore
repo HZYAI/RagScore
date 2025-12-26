@@ -1,51 +1,106 @@
-# Environment variables
-.env
+# =============================================================================
+# RAGScore .gitignore
+# =============================================================================
 
-# Virtual environment
+# Environment variables (NEVER commit API keys!)
+.env
+.env.local
+.env.*.local
+
+# Virtual environments
 venv/
 env/
 ENV/
+.venv/
 
 # Python artifacts
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
 .Python
 
-# Build artifacts
+# Build & Distribution
 build/
 dist/
 *.egg-info/
+*.egg
+.eggs/
+wheels/
+SDIST/
+develop-eggs/
 
-# IDE files
+# IDE & Editor
 .idea/
 .vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
 
-# Test artifacts
+# Testing
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
 
-# Data and output
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Data and Output (user-generated)
 /data/docs/*
 !/data/docs/.gitkeep
 /output/*
 !/output/.gitkeep
 
-# Notebook checkpoints
+# Jupyter Notebooks
 .ipynb_checkpoints/
+*.ipynb
 
-# Temp files
-temp_notebook.py
+# Temporary files
+temp_*.py
+*.tmp
+*.temp
+*.bak
 
 # Logs
 *.log
-app.log
+logs/
 
-# NLTK data (can be downloaded)
+# NLTK data (downloaded at runtime)
 nltk_data/
 
 # OS files
 .DS_Store
+.DS_Store?
+._*
 Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Sensitive files
+*.pem
+*.key
+secrets/
+
+# Deployment
+*.pid
+*.sock
+
+# Package manager
+pip-log.txt
+pip-delete-this-directory.txt
+poetry.lock
+
+# Codeium/Windsurf specific
+.codeiumignore
+Users/
