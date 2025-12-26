@@ -77,7 +77,7 @@ Generated QA pairs are saved to `output/generated_qas.jsonl`:
 
 ```bash
 # Generate QA pairs from documents
-ragscore generate
+ragscore generate  --docs-dir YOUR-PDF-DIRECTORY
 
 # Force re-indexing of documents
 ragscore generate --force-reindex
