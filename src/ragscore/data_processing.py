@@ -11,18 +11,43 @@ from . import config
 
 
 def initialize_nltk():
-    """Download necessary NLTK models."""
+    """Download necessary NLTK models with SSL fix for Windows."""
+    import ssl
+    
+    # Fix SSL certificate issues on Windows
+    try:
+        _create_unverified_https_context = ssl._create_unverified_context
+    except AttributeError:
+        pass
+    else:
+        ssl._create_default_https_context = _create_unverified_https_context
+    
+    models_needed = []
+    
+    # Check which models are missing
     try:
         nltk.data.find("tokenizers/punkt_tab")
     except LookupError:
-        print("Downloading NLTK 'punkt_tab' model...")
-        nltk.download("punkt_tab", quiet=True)
+        models_needed.append("punkt_tab")
     
     try:
         nltk.data.find("tokenizers/punkt")
     except LookupError:
-        print("Downloading NLTK 'punkt' model...")
-        nltk.download("punkt", quiet=True)
+        models_needed.append("punkt")
+    
+    # Download missing models
+    for model in models_needed:
+        print(f"Downloading NLTK '{model}' model...")
+        try:
+            nltk.download(model, quiet=False)
+        except Exception as e:
+            print(f"Warning: Failed to download {model}: {e}")
+            print("You can manually download with: python -c \"import nltk; nltk.download('punkt')\"")
+            # Try alternative download location
+            try:
+                nltk.download(model, download_dir=None, quiet=False)
+            except Exception:
+                pass
 
 def read_docs(dir_path: Path = config.DOCS_DIR, specific_files: List[str] = None) -> List[Dict[str, Any]]:
     """
