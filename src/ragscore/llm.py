@@ -3,9 +3,6 @@ import re
 import uuid
 from typing import List, Dict, Any
 
-import dashscope
-from dashscope import Generation
-
 from . import config
 
 def safe_json_parse(raw: str) -> Dict[str, Any]:
@@ -47,7 +44,16 @@ def detect_language(text: str) -> str:
 
 def generate_qa_for_chunk(chunk_text: str, difficulty: str, n: int = 2) -> List[Dict[str, Any]]:
     """Generates question-answer pairs for a given text chunk using DashScope LLM."""
-    dashscope.api_key = config.DASHSCOPE_API_KEY
+    try:
+        import dashscope
+        from dashscope import Generation
+    except ImportError:
+        raise ImportError(
+            "DashScope LLM requires dashscope package. "
+            "Install with: pip install ragscore[dashscope]"
+        )
+    
+    dashscope.api_key = config.get_api_key("dashscope")
     
     # Detect language
     lang = detect_language(chunk_text)

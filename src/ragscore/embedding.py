@@ -1,14 +1,27 @@
 import numpy as np
 from typing import List
-from langchain_community.embeddings.dashscope import DashScopeEmbeddings
 
 from . import config
 
-# Initialize the embedder once
-embedder = DashScopeEmbeddings(
-    model=config.MODEL_EMB,
-    dashscope_api_key=config.DASHSCOPE_API_KEY
-)
+# Lazy initialization to avoid import errors
+_embedder = None
+
+def _get_embedder():
+    """Lazy load embedder to avoid import errors when dashscope not installed."""
+    global _embedder
+    if _embedder is None:
+        try:
+            from langchain_community.embeddings.dashscope import DashScopeEmbeddings
+            _embedder = DashScopeEmbeddings(
+                model=config.MODEL_EMB,
+                dashscope_api_key=config.get_api_key("dashscope")
+            )
+        except ImportError:
+            raise ImportError(
+                "DashScope embeddings require langchain-community. "
+                "Install with: pip install ragscore[dashscope]"
+            )
+    return _embedder
 
 def embed_texts(texts: List[str], batch_size: int = 10) -> np.ndarray:
     """Embeds a list of texts using the configured DashScope model.
@@ -17,6 +30,8 @@ def embed_texts(texts: List[str], batch_size: int = 10) -> np.ndarray:
     """
     if not texts:
         return np.array([])
+    
+    embedder = _get_embedder()
     
     # Process in batches to avoid API limits
     all_embeddings = []
