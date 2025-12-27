@@ -16,24 +16,24 @@ RAGScore automatically generates question-answer pairs from your documents, whic
 
 - 📄 **Multi-format support** - PDF, TXT, Markdown, HTML
 - 🌍 **Multi-language** - English and Chinese out of the box
-- 🤖 **Multi-provider** - OpenAI, DashScope (Qwen), or any OpenAI-compatible API
+- 🤖 **Multi-provider** - OpenAI, Anthropic, DashScope, Ollama, and more
 - 🎯 **Difficulty levels** - Easy, medium, and hard questions
 - 🚀 **Simple CLI** - Easy command-line interface
-- ⚡ **Fast indexing** - FAISS-powered vector search
+- 🔒 **Privacy-first** - No embeddings, no external API calls for document processing
+- ⚡ **Lightweight** - Only ~50MB install, no heavy ML dependencies
 
 ## 🚀 Quick Start
 
 ### Installation
 
 ```bash
-# Basic installation through pypi
+# Basic installation (works with any provider)
 pip install ragscore
 
-# With OpenAI support
-pip install ragscore[openai]
-
-# With DashScope support (Chinese users)
-pip install ragscore[dashscope]
+# With specific provider support
+pip install ragscore[openai]      # For OpenAI
+pip install ragscore[anthropic]   # For Anthropic Claude
+pip install ragscore[dashscope]   # For DashScope/Qwen
 
 # All providers
 pip install ragscore[all]
@@ -44,11 +44,12 @@ pip install ragscore[all]
 ### Setup API Key
 
 ```bash
-# For OpenAI
-export OPENAI_API_KEY="your-openai-key"
-
-# For DashScope (Alibaba Cloud)
-export DASHSCOPE_API_KEY="your-dashscope-key"
+# Choose your LLM provider:
+export OPENAI_API_KEY="sk-..."        # For OpenAI
+export ANTHROPIC_API_KEY="sk-ant-..." # For Anthropic Claude
+export DASHSCOPE_API_KEY="sk-..."     # For DashScope/Qwen
+export GROQ_API_KEY="..."             # For Groq
+# ... or any other provider
 ```
 
 ### Generate QA Pairs
@@ -78,24 +79,19 @@ Generated QA pairs are saved to `output/generated_qas.jsonl`:
 
 ```bash
 # Generate QA pairs from documents
-ragscore generate  --docs-dir YOUR-PDF-DIRECTORY
+ragscore generate --docs-dir YOUR-PDF-DIRECTORY
 
-# Force re-indexing of documents
-ragscore generate --force-reindex
-
-# Use specific provider
-ragscore generate --provider openai --model gpt-4o
+# Use custom directory
+ragscore generate -d /path/to/docs
 ```
 
 ### Python API
 
 ```python
-from ragscore.pipeline import run_pipeline
-from ragscore.data_processing import read_docs
-from ragscore.llm import generate_qa_for_chunk
+from ragscore import run_pipeline, read_docs, generate_qa_for_chunk
 
 # Run full pipeline
-run_pipeline(force_reindex=True)
+run_pipeline(docs_dir="./my_docs")
 
 # Or use individual components
 docs = read_docs(dir_path="./my_docs")
@@ -160,17 +156,14 @@ ragscore generate
 ```
 ragscore/
 ├── data/docs/          # Place your documents here
-├── output/             # Generated QA pairs and index
-│   ├── generated_qas.jsonl
-│   ├── index.faiss
-│   └── meta.json
+├── output/             # Generated QA pairs
+│   └── generated_qas.jsonl
 └── src/ragscore/       # Source code
     ├── cli.py          # Command-line interface
     ├── pipeline.py     # Main pipeline
-    ├── data_processing.py
-    ├── vector_store.py
-    ├── llm.py
-    └── providers/      # LLM provider implementations
+    ├── data_processing.py  # Document reading & chunking
+    ├── llm.py          # QA generation
+    └── providers/      # Multi-provider LLM support
 ```
 
 ## 🚀 RAGScore Pro (Coming Soon)
