@@ -1,37 +1,39 @@
 import json
 import random
+
 from tqdm import tqdm
 
 from . import config
-from .data_processing import read_docs, initialize_nltk
-from .vector_store import build_index, save_index, load_index
+from .data_processing import initialize_nltk, read_docs
 from .llm import generate_qa_for_chunk
+from .vector_store import build_index, load_index, save_index
+
 
 def run_pipeline(docs_dir=None, force_reindex: bool = False):
     """Executes the full QA generation pipeline.
-    
+
     Args:
         docs_dir: Path to documents directory (default: config.DOCS_DIR)
         force_reindex: Force re-reading and re-indexing of documents
     """
     from pathlib import Path
-    
+
     # Ensure directories exist
     config.ensure_dirs()
-    
+
     # Ensure NLTK data is ready
     initialize_nltk()
-    
+
     # Use provided docs_dir or default
     docs_path = Path(docs_dir) if docs_dir else config.DOCS_DIR
 
-    # --- 1. Indexing --- 
+    # --- 1. Indexing ---
     if force_reindex or not config.INDEX_PATH.exists():
         print("--- Starting Document Ingestion and Indexing ---")
         docs = read_docs(dir_path=docs_path)
         if not docs:
             return
-        
+
         index, meta = build_index(docs)
         if index is not None:
             save_index(index, meta)
@@ -42,9 +44,9 @@ def run_pipeline(docs_dir=None, force_reindex: bool = False):
             print("Failed to load index. Exiting.")
             return
 
-    # --- 2. QA Generation --- 
+    # --- 2. QA Generation ---
     print("\n--- Starting QA Pair Generation ---")
-    
+
     all_qas = []
     for m in tqdm(meta, desc="Generating QAs"):
         # Skip very short chunks
@@ -55,17 +57,19 @@ def run_pipeline(docs_dir=None, force_reindex: bool = False):
         try:
             items = generate_qa_for_chunk(m["text"], difficulty, n=config.NUM_Q_PER_CHUNK)
             for item in items:
-                item.update({
-                    "doc_id": m["doc_id"],
-                    "chunk_id": m["chunk_id"],
-                    "source_path": m["path"],
-                    "difficulty": difficulty,
-                })
+                item.update(
+                    {
+                        "doc_id": m["doc_id"],
+                        "chunk_id": m["chunk_id"],
+                        "source_path": m["path"],
+                        "difficulty": difficulty,
+                    }
+                )
                 all_qas.append(item)
         except Exception as e:
             print(f"Error generating QA for chunk {m['chunk_id']}: {e}")
 
-    # --- 3. Save Results --- 
+    # --- 3. Save Results ---
     if not all_qas:
         print("\nNo QA pairs were generated.")
         return

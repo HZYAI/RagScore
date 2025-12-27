@@ -4,7 +4,7 @@ RAGScore - Generate high-quality QA datasets for RAG evaluation
 Usage:
     # Command line
     $ ragscore generate
-    
+
     # Python API
     >>> from ragscore import run_pipeline
     >>> run_pipeline()
@@ -16,20 +16,20 @@ __version__ = "0.1.4"
 __author__ = "RAGScore Team"
 
 # Core functionality
-from .pipeline import run_pipeline
-from .data_processing import read_docs, chunk_text
-from .llm import generate_qa_for_chunk
-from .vector_store import build_index, save_index, load_index, retrieve
+from .data_processing import chunk_text, read_docs
 
 # Exceptions
 from .exceptions import (
-    RAGScoreError,
     ConfigurationError,
-    MissingAPIKeyError,
     DocumentProcessingError,
     LLMError,
+    MissingAPIKeyError,
+    RAGScoreError,
     VectorStoreError,
 )
+from .llm import generate_qa_for_chunk
+from .pipeline import run_pipeline
+from .vector_store import build_index, load_index, retrieve, save_index
 
 __all__ = [
     # Version

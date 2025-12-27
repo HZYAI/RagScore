@@ -15,7 +15,7 @@ Supports multiple LLM providers:
 """
 
 from .base import BaseLLMProvider, LLMResponse
-from .factory import get_provider, list_providers, auto_detect_provider
+from .factory import auto_detect_provider, get_provider, list_providers
 
 # Import providers with graceful fallback
 try:
@@ -24,7 +24,7 @@ except ImportError:
     DashScopeProvider = None
 
 try:
-    from .openai_provider import OpenAIProvider, AzureOpenAIProvider
+    from .openai_provider import AzureOpenAIProvider, OpenAIProvider
 except ImportError:
     OpenAIProvider = None
     AzureOpenAIProvider = None
@@ -41,12 +41,12 @@ except ImportError:
 
 try:
     from .generic_provider import (
+        DeepSeekProvider,
         GenericOpenAIProvider,
         GrokProvider,
-        TogetherProvider,
         GroqProvider,
         MistralProvider,
-        DeepSeekProvider,
+        TogetherProvider,
     )
 except ImportError:
     GenericOpenAIProvider = None

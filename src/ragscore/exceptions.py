@@ -7,18 +7,20 @@ Provides structured error handling for the RAGScore library.
 
 class RAGScoreError(Exception):
     """Base exception for all RAGScore errors."""
+
     pass
 
 
 # Configuration Errors
 class ConfigurationError(RAGScoreError):
     """Raised when there's a configuration problem."""
+
     pass
 
 
 class MissingAPIKeyError(ConfigurationError):
     """Raised when a required API key is not set."""
-    
+
     def __init__(self, provider: str, env_var: str):
         self.provider = provider
         self.env_var = env_var
@@ -31,37 +33,36 @@ class MissingAPIKeyError(ConfigurationError):
 
 class InvalidProviderError(ConfigurationError):
     """Raised when an invalid LLM provider is specified."""
-    
+
     def __init__(self, provider: str, valid_providers: list):
         self.provider = provider
         self.valid_providers = valid_providers
         super().__init__(
-            f"Invalid provider '{provider}'. "
-            f"Valid providers are: {', '.join(valid_providers)}"
+            f"Invalid provider '{provider}'. " f"Valid providers are: {', '.join(valid_providers)}"
         )
 
 
 # Document Processing Errors
 class DocumentProcessingError(RAGScoreError):
     """Raised when document processing fails."""
+
     pass
 
 
 class UnsupportedFileTypeError(DocumentProcessingError):
     """Raised when a file type is not supported."""
-    
+
     def __init__(self, file_path: str, supported_types: list):
         self.file_path = file_path
         self.supported_types = supported_types
         super().__init__(
-            f"Unsupported file type: {file_path}\n"
-            f"Supported types: {', '.join(supported_types)}"
+            f"Unsupported file type: {file_path}\n" f"Supported types: {', '.join(supported_types)}"
         )
 
 
 class EmptyDocumentError(DocumentProcessingError):
     """Raised when a document has no extractable content."""
-    
+
     def __init__(self, file_path: str):
         self.file_path = file_path
         super().__init__(f"No text content could be extracted from: {file_path}")
@@ -70,17 +71,19 @@ class EmptyDocumentError(DocumentProcessingError):
 # LLM Errors
 class LLMError(RAGScoreError):
     """Base exception for LLM-related errors."""
+
     pass
 
 
 class LLMConnectionError(LLMError):
     """Raised when connection to LLM service fails."""
+
     pass
 
 
 class LLMRateLimitError(LLMError):
     """Raised when LLM rate limit is exceeded."""
-    
+
     def __init__(self, provider: str, retry_after: int = None):
         self.provider = provider
         self.retry_after = retry_after
@@ -92,18 +95,20 @@ class LLMRateLimitError(LLMError):
 
 class LLMResponseError(LLMError):
     """Raised when LLM returns an invalid response."""
+
     pass
 
 
 # Vector Store Errors
 class VectorStoreError(RAGScoreError):
     """Base exception for vector store errors."""
+
     pass
 
 
 class IndexNotFoundError(VectorStoreError):
     """Raised when the FAISS index doesn't exist."""
-    
+
     def __init__(self, index_path: str):
         self.index_path = index_path
         super().__init__(
@@ -114,18 +119,20 @@ class IndexNotFoundError(VectorStoreError):
 
 class IndexBuildError(VectorStoreError):
     """Raised when index building fails."""
+
     pass
 
 
 # Assessment Errors
 class AssessmentError(RAGScoreError):
     """Base exception for assessment errors."""
+
     pass
 
 
 class EndpointConnectionError(AssessmentError):
     """Raised when connection to RAG endpoint fails."""
-    
+
     def __init__(self, endpoint_url: str, reason: str = None):
         self.endpoint_url = endpoint_url
         self.reason = reason
@@ -137,7 +144,7 @@ class EndpointConnectionError(AssessmentError):
 
 class AuthenticationError(AssessmentError):
     """Raised when authentication to RAG endpoint fails."""
-    
+
     def __init__(self, endpoint_url: str):
         self.endpoint_url = endpoint_url
         super().__init__(f"Authentication failed for endpoint: {endpoint_url}")
@@ -145,7 +152,7 @@ class AuthenticationError(AssessmentError):
 
 class QAFileNotFoundError(AssessmentError):
     """Raised when the QA pairs file doesn't exist."""
-    
+
     def __init__(self, qa_path: str):
         self.qa_path = qa_path
         super().__init__(
