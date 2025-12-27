@@ -14,9 +14,6 @@ def generate(
     docs_dir: Optional[str] = typer.Option(
         None, "--docs-dir", "-d", help="Path to directory containing PDF/TXT/MD documents"
     ),
-    force_reindex: bool = typer.Option(
-        False, "--force-reindex", "-f", help="Force re-reading and re-indexing of all documents"
-    ),
 ):
     """
     Generate QA pairs from your documents.
@@ -36,7 +33,6 @@ def generate(
     Examples:
       ragscore generate                        # Use default data/docs/
       ragscore generate -d /path/to/docs       # Custom directory
-      ragscore generate -f                     # Force re-index
 
     \b
     Output:
@@ -53,7 +49,7 @@ def generate(
     docs_path = Path(docs_dir) if docs_dir else None
 
     try:
-        run_pipeline(docs_dir=docs_path, force_reindex=force_reindex)
+        run_pipeline(docs_dir=docs_path)
     except ValueError as e:
         typer.secho(f"\n❌ Configuration error: {e}", fg=typer.colors.RED)
         typer.secho("\n💡 Tip: Set your API key with:", fg=typer.colors.YELLOW)
