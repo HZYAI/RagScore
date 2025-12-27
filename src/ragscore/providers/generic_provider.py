@@ -182,9 +182,8 @@ class GenericOpenAIProvider(BaseLLMProvider):
             usage = response.usage
 
             return LLMResponse(
-                text=choice.message.content or "",
+                content=choice.message.content or "",
                 model=response.model,
-                provider=self._provider_name,
                 usage={
                     "prompt_tokens": usage.prompt_tokens if usage else 0,
                     "completion_tokens": usage.completion_tokens if usage else 0,
@@ -196,10 +195,10 @@ class GenericOpenAIProvider(BaseLLMProvider):
         except Exception as e:
             error_str = str(e).lower()
             if "rate" in error_str or "limit" in error_str:
-                raise LLMRateLimitError(provider=self._provider_name) from e
+                raise LLMRateLimitError(self._provider_name) from e
             if "connect" in error_str or "timeout" in error_str:
-                raise LLMConnectionError(str(e), provider=self._provider_name) from e
-            raise LLMError(f"API error: {e}", provider=self._provider_name) from e
+                raise LLMConnectionError(f"{self._provider_name}: {e}") from e
+            raise LLMError(f"{self._provider_name} API error: {e}") from e
 
     def get_embeddings(self, texts: list[str], model: Optional[str] = None) -> list[list[float]]:
         """
@@ -218,7 +217,7 @@ class GenericOpenAIProvider(BaseLLMProvider):
 
         except Exception as e:
             raise LLMError(
-                f"Embeddings not supported or failed: {e}", provider=self._provider_name
+                f"Embeddings not supported or failed ({self._provider_name}): {e}"
             ) from e
 
     @classmethod

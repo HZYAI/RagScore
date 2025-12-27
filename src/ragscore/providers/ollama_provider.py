@@ -102,10 +102,7 @@ class OllamaProvider(BaseLLMProvider):
             LLMResponse with generated text
         """
         if not self._check_server():
-            raise LLMConnectionError(
-                "Ollama server not running. Start it with: ollama serve",
-                provider=self.PROVIDER_NAME,
-            )
+            raise LLMConnectionError("Ollama server not running. Start it with: ollama serve")
 
         # Build messages
         messages = []
@@ -133,9 +130,8 @@ class OllamaProvider(BaseLLMProvider):
             message = data.get("message", {})
 
             return LLMResponse(
-                text=message.get("content", ""),
+                content=message.get("content", ""),
                 model=self.model,
-                provider=self.PROVIDER_NAME,
                 usage={
                     "prompt_tokens": data.get("prompt_eval_count", 0),
                     "completion_tokens": data.get("eval_count", 0),
@@ -147,13 +143,10 @@ class OllamaProvider(BaseLLMProvider):
         except requests.exceptions.Timeout as e:
             raise LLMError(
                 f"Ollama request timed out after {self.timeout}s. "
-                "Try a smaller model or increase timeout.",
-                provider=self.PROVIDER_NAME,
+                "Try a smaller model or increase timeout."
             ) from e
         except requests.exceptions.RequestException as e:
-            raise LLMConnectionError(
-                f"Failed to connect to Ollama: {e}", provider=self.PROVIDER_NAME
-            ) from e
+            raise LLMConnectionError(f"Failed to connect to Ollama: {e}") from e
 
     def get_embeddings(self, texts: list[str], model: Optional[str] = None) -> list[list[float]]:
         """
@@ -167,7 +160,7 @@ class OllamaProvider(BaseLLMProvider):
             List of embedding vectors
         """
         if not self._check_server():
-            raise LLMConnectionError("Ollama server not running", provider=self.PROVIDER_NAME)
+            raise LLMConnectionError("Ollama server not running")
 
         embed_model = model or self.model
         embeddings = []
@@ -185,7 +178,7 @@ class OllamaProvider(BaseLLMProvider):
                 embeddings.append(data.get("embedding", []))
 
             except requests.exceptions.RequestException as e:
-                raise LLMError(f"Failed to get embeddings: {e}", provider=self.PROVIDER_NAME) from e
+                raise LLMError(f"Ollama failed to get embeddings: {e}") from e
 
         return embeddings
 

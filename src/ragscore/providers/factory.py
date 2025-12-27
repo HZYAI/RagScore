@@ -117,7 +117,10 @@ def list_providers() -> list[str]:
 
 
 def get_provider(
-    provider: str = None, api_key: str = None, model: str = None, **kwargs
+    provider: Optional[str] = None,
+    api_key: Optional[str] = None,
+    model: Optional[str] = None,
+    **kwargs,
 ) -> BaseLLMProvider:
     """
     Get an LLM provider instance.
@@ -143,6 +146,11 @@ def get_provider(
     # Auto-detect provider if not specified
     if provider is None:
         provider = auto_detect_provider()
+        if provider is None:
+            raise MissingAPIKeyError(
+                "No provider specified and no API keys found",
+                "Set an API key environment variable or specify a provider",
+            )
 
     provider = provider.lower()
 
@@ -152,7 +160,7 @@ def get_provider(
     provider_class = _PROVIDER_REGISTRY[provider]
 
     # Build kwargs
-    init_kwargs = {}
+    init_kwargs: dict[str, Any] = {}
     if api_key:
         init_kwargs["api_key"] = api_key
     if model:
@@ -194,7 +202,7 @@ def auto_detect_provider() -> Optional[str]:
 
     # Check if Ollama is running locally
     try:
-        import requests
+        import requests  # type: ignore[import-untyped]
 
         response = requests.get("http://localhost:11434/api/tags", timeout=2)
         if response.status_code == 200:
@@ -220,6 +228,12 @@ def get_default_provider_config() -> dict[str, Any]:
     """
     try:
         provider = auto_detect_provider()
+        if provider is None:
+            return {
+                "provider": None,
+                "model": None,
+                "embedding_model": None,
+            }
         provider_class = _PROVIDER_REGISTRY[provider]
         return {
             "provider": provider,

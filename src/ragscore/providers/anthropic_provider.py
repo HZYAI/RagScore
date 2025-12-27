@@ -87,10 +87,16 @@ class AnthropicProvider(BaseLLMProvider):
                 temperature=temperature,
             )
 
+            # Extract text content from response
+            content = ""
+            for block in message.content:
+                if hasattr(block, "text"):
+                    content = block.text
+                    break
+
             return LLMResponse(
-                text=message.content[0].text,
+                content=content,
                 model=self.model,
-                provider=self.PROVIDER_NAME,
                 usage={
                     "prompt_tokens": message.usage.input_tokens,
                     "completion_tokens": message.usage.output_tokens,
@@ -102,8 +108,8 @@ class AnthropicProvider(BaseLLMProvider):
         except Exception as e:
             error_str = str(e).lower()
             if "rate" in error_str or "limit" in error_str:
-                raise LLMRateLimitError(provider=self.PROVIDER_NAME) from e
-            raise LLMError(f"Anthropic API error: {e}", provider=self.PROVIDER_NAME) from e
+                raise LLMRateLimitError(self.PROVIDER_NAME) from e
+            raise LLMError(f"Anthropic API error: {e}") from e
 
     def get_embeddings(self, texts: list[str], model: Optional[str] = None) -> list[list[float]]:
         """
