@@ -99,30 +99,6 @@ class LLMResponseError(LLMError):
     pass
 
 
-# Vector Store Errors
-class VectorStoreError(RAGScoreError):
-    """Base exception for vector store errors."""
-
-    pass
-
-
-class IndexNotFoundError(VectorStoreError):
-    """Raised when the FAISS index doesn't exist."""
-
-    def __init__(self, index_path: str):
-        self.index_path = index_path
-        super().__init__(
-            f"Index not found at: {index_path}\n"
-            f"Run 'ragscore generate' first to create the index."
-        )
-
-
-class IndexBuildError(VectorStoreError):
-    """Raised when index building fails."""
-
-    pass
-
-
 # Assessment Errors
 class AssessmentError(RAGScoreError):
     """Base exception for assessment errors."""

@@ -204,17 +204,7 @@ def mock_openai_client():
 # ============================================================================
 
 
-@pytest.fixture
-def mock_embeddings():
-    """Mock embedding function."""
-    import numpy as np
-
-    def embed(texts):
-        # Return random embeddings for testing
-        return np.random.rand(len(texts), 384).astype("float32")
-
-    with patch("ragscore.embedding.embed_texts", side_effect=embed) as mock:
-        yield mock
+# Embedding mocks removed - no longer needed without vector store
 
 
 # ============================================================================

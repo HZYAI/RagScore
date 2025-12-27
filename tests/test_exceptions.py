@@ -6,7 +6,6 @@ from ragscore.exceptions import (
     DocumentProcessingError,
     EmptyDocumentError,
     EndpointConnectionError,
-    IndexNotFoundError,
     InvalidProviderError,
     LLMConnectionError,
     LLMError,
@@ -15,7 +14,6 @@ from ragscore.exceptions import (
     QAFileNotFoundError,
     RAGScoreError,
     UnsupportedFileTypeError,
-    VectorStoreError,
 )
 
 
@@ -27,7 +25,6 @@ class TestExceptionHierarchy:
         assert issubclass(ConfigurationError, RAGScoreError)
         assert issubclass(DocumentProcessingError, RAGScoreError)
         assert issubclass(LLMError, RAGScoreError)
-        assert issubclass(VectorStoreError, RAGScoreError)
         assert issubclass(AssessmentError, RAGScoreError)
 
     def test_configuration_exceptions(self):
@@ -121,17 +118,6 @@ class TestLLMRateLimitError:
 
         assert "60" in str(err)
         assert err.retry_after == 60
-
-
-class TestIndexNotFoundError:
-    """Test IndexNotFoundError."""
-
-    def test_message_format(self):
-        """Test error message includes path and instructions."""
-        err = IndexNotFoundError("/output/index.faiss")
-
-        assert "index.faiss" in str(err)
-        assert "ragscore generate" in str(err)
 
 
 class TestEndpointConnectionError:

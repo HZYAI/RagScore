@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ragscore"
-version = "0.1.7"
+version = "0.2.0"
 description = "Generate high-quality QA datasets to evaluate RAG systems"
 readme = "README.md"
 license = {text = "Apache-2.0"}
@@ -32,8 +32,6 @@ dependencies = [
     "pypdf2>=3.0.1",
     "nltk>=3.8.1",
     "tqdm>=4.66.1",
-    "faiss-cpu>=1.7.4",
-    "numpy<2.0.0",
     "typer[all]>=0.16.0",
     "python-dotenv>=1.0.0",
 ]
@@ -51,8 +49,6 @@ anthropic = [
 # DashScope / Qwen (Chinese users)
 dashscope = [
     "dashscope>=1.14.1",
-    "langchain-community>=0.0.31",
-    "sentence-transformers>=2.2.2",
 ]
 # All cloud providers
 providers = [

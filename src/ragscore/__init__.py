@@ -12,7 +12,7 @@ Usage:
 For more information, see: https://github.com/ragscore/ragscore
 """
 
-__version__ = "0.1.7"
+__version__ = "0.2.0"
 __author__ = "RAGScore Team"
 
 # Core functionality
@@ -25,11 +25,9 @@ from .exceptions import (
     LLMError,
     MissingAPIKeyError,
     RAGScoreError,
-    VectorStoreError,
 )
 from .llm import generate_qa_for_chunk
 from .pipeline import run_pipeline
-from .vector_store import build_index, load_index, retrieve, save_index
 
 __all__ = [
     # Version
@@ -39,15 +37,10 @@ __all__ = [
     "read_docs",
     "chunk_text",
     "generate_qa_for_chunk",
-    "build_index",
-    "save_index",
-    "load_index",
-    "retrieve",
     # Exceptions
     "RAGScoreError",
     "ConfigurationError",
     "MissingAPIKeyError",
     "DocumentProcessingError",
     "LLMError",
-    "VectorStoreError",
 ]

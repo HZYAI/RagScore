@@ -12,8 +12,6 @@ WORK_DIR = Path(os.getenv("RAGSCORE_WORK_DIR", Path.cwd()))
 DATA_DIR = WORK_DIR / "data"
 DOCS_DIR = DATA_DIR / "docs"
 OUTPUT_DIR = WORK_DIR / "output"
-INDEX_PATH = OUTPUT_DIR / "index.faiss"
-META_PATH = OUTPUT_DIR / "meta.json"
 GENERATED_QAS_PATH = OUTPUT_DIR / "generated_qas.jsonl"
 
 
@@ -23,9 +21,7 @@ def ensure_dirs():
     DOCS_DIR.mkdir(parents=True, exist_ok=True)
 
 
-# --- Embeddings & Vector Store ---
-MODEL_EMB = "text-embedding-v3"  # DashScope embedding model
-TOP_K = 6
+# --- Text Processing ---
 CHUNK_SIZE = 512
 CHUNK_OVERLAP = 64
 

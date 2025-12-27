@@ -4,17 +4,19 @@ import random
 from tqdm import tqdm
 
 from . import config
-from .data_processing import initialize_nltk, read_docs
+from .data_processing import chunk_text, initialize_nltk, read_docs
 from .llm import generate_qa_for_chunk
-from .vector_store import build_index, load_index, save_index
 
 
-def run_pipeline(docs_dir=None, force_reindex: bool = False):
-    """Executes the full QA generation pipeline.
+def run_pipeline(docs_dir=None):
+    """
+    Executes the QA generation pipeline.
+    
+    Reads documents, chunks them, and generates QA pairs using LLM.
+    No embeddings or vector indexing required.
 
     Args:
         docs_dir: Path to documents directory (default: config.DOCS_DIR)
-        force_reindex: Force re-reading and re-indexing of documents
     """
     from pathlib import Path
 
@@ -27,47 +29,53 @@ def run_pipeline(docs_dir=None, force_reindex: bool = False):
     # Use provided docs_dir or default
     docs_path = Path(docs_dir) if docs_dir else config.DOCS_DIR
 
-    # --- 1. Indexing ---
-    if force_reindex or not config.INDEX_PATH.exists():
-        print("--- Starting Document Ingestion and Indexing ---")
-        docs = read_docs(dir_path=docs_path)
-        if not docs:
-            return
+    # --- 1. Read and Chunk Documents ---
+    print("--- Reading and Chunking Documents ---")
+    docs = read_docs(dir_path=docs_path)
+    if not docs:
+        print("No documents found.")
+        return
 
-        index, meta = build_index(docs)
-        if index is not None:
-            save_index(index, meta)
-    else:
-        print("--- Loading Existing Index ---")
-        index, meta = load_index()
-        if index is None:
-            print("Failed to load index. Exiting.")
-            return
+    # Build chunks with metadata (no embeddings needed!)
+    all_chunks = []
+    for doc in docs:
+        chunks = chunk_text(doc["text"])
+        for i, chunk_text_content in enumerate(chunks):
+            all_chunks.append(
+                {
+                    "doc_id": doc["doc_id"],
+                    "path": doc["path"],
+                    "text": chunk_text_content,
+                    "chunk_id": len(all_chunks),
+                }
+            )
 
-    # --- 2. QA Generation ---
-    print("\n--- Starting QA Pair Generation ---")
+    print(f"Created {len(all_chunks)} chunks from {len(docs)} documents")
+
+    # --- 2. Generate QA Pairs ---
+    print("\n--- Generating QA Pairs ---")
 
     all_qas = []
-    for m in tqdm(meta, desc="Generating QAs"):
+    for chunk in tqdm(all_chunks, desc="Generating QAs"):
         # Skip very short chunks
-        if len(m["text"].split()) < 40:
+        if len(chunk["text"].split()) < 40:
             continue
 
         difficulty = random.choice(config.DIFFICULTY_MIX)
         try:
-            items = generate_qa_for_chunk(m["text"], difficulty, n=config.NUM_Q_PER_CHUNK)
+            items = generate_qa_for_chunk(chunk["text"], difficulty, n=config.NUM_Q_PER_CHUNK)
             for item in items:
                 item.update(
                     {
-                        "doc_id": m["doc_id"],
-                        "chunk_id": m["chunk_id"],
-                        "source_path": m["path"],
+                        "doc_id": chunk["doc_id"],
+                        "chunk_id": chunk["chunk_id"],
+                        "source_path": chunk["path"],
                         "difficulty": difficulty,
                     }
                 )
                 all_qas.append(item)
         except Exception as e:
-            print(f"Error generating QA for chunk {m['chunk_id']}: {e}")
+            print(f"Error generating QA for chunk {chunk['chunk_id']}: {e}")
 
     # --- 3. Save Results ---
     if not all_qas:
