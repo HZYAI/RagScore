@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ragscore"
-version = "0.3.0"
+version = "0.3.1"
 description = "Generate high-quality QA datasets to evaluate RAG systems"
 readme = "README.md"
 license = {text = "Apache-2.0"}
