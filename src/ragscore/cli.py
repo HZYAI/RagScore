@@ -11,8 +11,11 @@ app = typer.Typer(
 
 @app.command("generate")
 def generate(
+    paths: Optional[list[str]] = typer.Argument(
+        None, help="Files or directories to process. If not provided, uses data/docs/"
+    ),
     docs_dir: Optional[str] = typer.Option(
-        None, "--docs-dir", "-d", help="Path to directory containing PDF/TXT/MD documents"
+        None, "--docs-dir", "-d", help="[DEPRECATED] Use positional arguments instead"
     ),
 ):
     """
@@ -25,14 +28,17 @@ def generate(
          export DASHSCOPE_API_KEY="sk-..."     # For DashScope/Qwen
          export ANTHROPIC_API_KEY="sk-..."     # For Claude
 
-      2. Place documents in data/docs/ folder
-
-      3. Run: ragscore generate
+      2. Run with your documents:
+         ragscore generate paper.pdf           # Single file
+         ragscore generate *.pdf               # Multiple files
+         ragscore generate ./docs/             # Directory
 
     \b
     Examples:
       ragscore generate                        # Use default data/docs/
-      ragscore generate -d /path/to/docs       # Custom directory
+      ragscore generate paper.pdf              # Process single file
+      ragscore generate file1.pdf file2.txt    # Process multiple files
+      ragscore generate ./my_docs/             # Process directory
 
     \b
     Output:
@@ -41,15 +47,19 @@ def generate(
     \b
     Need help? https://github.com/HZYAI/RagScore
     """
-    from pathlib import Path
 
     from .pipeline import run_pipeline
 
-    # Convert docs_dir to Path if provided
-    docs_path = Path(docs_dir) if docs_dir else None
+    # Handle deprecated --docs-dir option
+    if docs_dir:
+        typer.secho(
+            "⚠️  Warning: --docs-dir is deprecated. Use: ragscore generate /path/to/docs",
+            fg=typer.colors.YELLOW,
+        )
+        paths = [docs_dir]
 
     try:
-        run_pipeline(docs_dir=docs_path)
+        run_pipeline(paths=paths)
     except ValueError as e:
         typer.secho(f"\n❌ Configuration error: {e}", fg=typer.colors.RED)
         typer.secho("\n💡 Tip: Set your API key with:", fg=typer.colors.YELLOW)

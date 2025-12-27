@@ -4,11 +4,76 @@ import random
 from tqdm import tqdm
 
 from . import config
-from .data_processing import chunk_text, initialize_nltk, read_docs
+from .data_processing import chunk_text, initialize_nltk
 from .llm import generate_qa_for_chunk
 
 
-def run_pipeline(docs_dir=None):
+def _read_from_paths(paths):
+    """
+    Read documents from a list of file or directory paths.
+
+    Args:
+        paths: List of file or directory paths
+
+    Returns:
+        List of document dictionaries
+    """
+    from pathlib import Path
+
+    all_docs = []
+    files_to_process = []
+
+    for path_str in paths:
+        path = Path(path_str)
+
+        if not path.exists():
+            print(f"Warning: Path does not exist: {path}")
+            continue
+
+        if path.is_file():
+            # Single file
+            files_to_process.append(path)
+        elif path.is_dir():
+            # Directory - read all files from it
+            supported_extensions = (".pdf", ".txt", ".md", ".html")
+            dir_files = [p for p in path.rglob("*") if p.suffix.lower() in supported_extensions]
+            files_to_process.extend(dir_files)
+        else:
+            print(f"Warning: Not a file or directory: {path}")
+
+    if not files_to_process:
+        return []
+
+    # Read all collected files
+    print(f"Found {len(files_to_process)} documents to process...")
+
+    import uuid
+
+    import PyPDF2
+
+    for file_path in tqdm(files_to_process, desc="Reading documents"):
+        text = ""
+        try:
+            if file_path.suffix.lower() == ".pdf":
+                with open(file_path, "rb") as fh:
+                    reader = PyPDF2.PdfReader(fh)
+                    text = "".join(page.extract_text() or "" for page in reader.pages)
+            else:
+                with open(file_path, encoding="utf-8", errors="ignore") as fh:
+                    text = fh.read()
+
+            if text.strip():
+                all_docs.append({"doc_id": str(uuid.uuid4()), "path": str(file_path), "text": text})
+            else:
+                print(f"Warning: No text extracted from {file_path}")
+        except Exception as e:
+            print(f"Error reading {file_path}: {e}")
+
+    print(f"Successfully loaded {len(all_docs)} documents.")
+    return all_docs
+
+
+def run_pipeline(paths=None, docs_dir=None):
     """
     Executes the QA generation pipeline.
 
@@ -16,9 +81,9 @@ def run_pipeline(docs_dir=None):
     No embeddings or vector indexing required.
 
     Args:
-        docs_dir: Path to documents directory (default: config.DOCS_DIR)
+        paths: List of file or directory paths to process
+        docs_dir: [DEPRECATED] Single directory path (use paths instead)
     """
-    from pathlib import Path
 
     # Ensure directories exist
     config.ensure_dirs()
@@ -26,12 +91,17 @@ def run_pipeline(docs_dir=None):
     # Ensure NLTK data is ready
     initialize_nltk()
 
-    # Use provided docs_dir or default
-    docs_path = Path(docs_dir) if docs_dir else config.DOCS_DIR
+    # Handle deprecated docs_dir parameter
+    if docs_dir is not None:
+        paths = [docs_dir]
+
+    # Use provided paths or default
+    if paths is None or len(paths) == 0:
+        paths = [config.DOCS_DIR]
 
     # --- 1. Read and Chunk Documents ---
     print("--- Reading and Chunking Documents ---")
-    docs = read_docs(dir_path=docs_path)
+    docs = _read_from_paths(paths)
     if not docs:
         print("No documents found.")
         return
