@@ -11,7 +11,7 @@ from .llm import generate_qa_for_chunk
 def run_pipeline(docs_dir=None):
     """
     Executes the QA generation pipeline.
-    
+
     Reads documents, chunks them, and generates QA pairs using LLM.
     No embeddings or vector indexing required.
 
@@ -40,7 +40,7 @@ def run_pipeline(docs_dir=None):
     all_chunks = []
     for doc in docs:
         chunks = chunk_text(doc["text"])
-        for i, chunk_text_content in enumerate(chunks):
+        for chunk_text_content in chunks:
             all_chunks.append(
                 {
                     "doc_id": doc["doc_id"],
