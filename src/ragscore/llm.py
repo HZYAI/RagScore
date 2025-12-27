@@ -45,18 +45,27 @@ def detect_language(text: str) -> str:
     return "en"
 
 
-def generate_qa_for_chunk(chunk_text: str, difficulty: str, n: int = 2) -> list[dict[str, Any]]:
-    """Generates question-answer pairs for a given text chunk using DashScope LLM."""
-    try:
-        import dashscope
-        from dashscope import Generation
-    except ImportError as e:
-        raise ImportError(
-            "DashScope LLM requires dashscope package. "
-            "Install with: pip install ragscore[dashscope]"
-        ) from e
-
-    dashscope.api_key = config.get_api_key("dashscope")
+def generate_qa_for_chunk(
+    chunk_text: str, difficulty: str, n: int = 2, provider=None, model: str = None
+) -> list[dict[str, Any]]:
+    """
+    Generates question-answer pairs for a given text chunk using any LLM provider.
+    
+    Args:
+        chunk_text: Text to generate QA pairs from
+        difficulty: Question difficulty ('easy', 'medium', 'hard')
+        n: Number of QA pairs to generate
+        provider: LLM provider instance (auto-detected if None)
+        model: Model name (uses provider default if None)
+    
+    Returns:
+        List of QA pair dictionaries
+    """
+    # Get LLM provider
+    if provider is None:
+        from .providers import get_provider
+        
+        provider = get_provider(model=model)
 
     # Detect language
     lang = detect_language(chunk_text)
@@ -102,16 +111,19 @@ Task:
 """.strip()
 
     try:
-        response = Generation.call(
-            model=config.DASHSCOPE_MODEL,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=config.DASHSCOPE_TEMPERATURE,
-            result_format="json_object",  # Use json_object for more reliable JSON output
+        # Call LLM provider
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+        
+        response = provider.generate(
+            messages=messages,
+            temperature=0.7,
+            json_mode=True,  # Request JSON output
         )
-        raw_content = response.output["choices"][0]["message"]["content"]
+        
+        raw_content = response.content
         data = safe_json_parse(raw_content)
         items = data.get("items", [])
     except Exception as e:
