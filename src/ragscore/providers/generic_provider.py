@@ -138,7 +138,9 @@ class GenericOpenAIProvider(BaseLLMProvider):
                 base_url=self.base_url,
             )
         except ImportError as e:
-            raise ImportError("openai package not installed. " "Install with: pip install openai") from e
+            raise ImportError(
+                "openai package not installed. " "Install with: pip install openai"
+            ) from e
 
         logger.info(
             f"Initialized {self._provider_name} provider: "
@@ -215,7 +217,9 @@ class GenericOpenAIProvider(BaseLLMProvider):
             return embeddings
 
         except Exception as e:
-            raise LLMError(f"Embeddings not supported or failed: {e}", provider=self._provider_name) from e
+            raise LLMError(
+                f"Embeddings not supported or failed: {e}", provider=self._provider_name
+            ) from e
 
     @classmethod
     def list_supported_providers(cls) -> list[str]:

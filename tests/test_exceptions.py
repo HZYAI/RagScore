@@ -1,6 +1,5 @@
 """Tests for the exceptions module."""
 
-
 from ragscore.exceptions import (
     AssessmentError,
     ConfigurationError,

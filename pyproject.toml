@@ -70,6 +70,7 @@ dev = [
     "ruff>=0.1.6",
     "black>=23.11.0",
     "mypy>=1.7.0",
+    "types-requests>=2.31.0",
     "pre-commit>=3.5.0",
     "requests>=2.31.0",
 ]
@@ -123,7 +124,7 @@ line-length = 100
 target-version = ["py39", "py310", "py311", "py312"]
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true
