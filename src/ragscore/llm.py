@@ -3,8 +3,6 @@ import re
 import uuid
 from typing import Any
 
-from . import config
-
 
 def safe_json_parse(raw: str) -> dict[str, Any]:
     """Safely parses a JSON string, cleaning and attempting to fix common errors."""
@@ -50,21 +48,21 @@ def generate_qa_for_chunk(
 ) -> list[dict[str, Any]]:
     """
     Generates question-answer pairs for a given text chunk using any LLM provider.
-    
+
     Args:
         chunk_text: Text to generate QA pairs from
         difficulty: Question difficulty ('easy', 'medium', 'hard')
         n: Number of QA pairs to generate
         provider: LLM provider instance (auto-detected if None)
         model: Model name (uses provider default if None)
-    
+
     Returns:
         List of QA pair dictionaries
     """
     # Get LLM provider
     if provider is None:
         from .providers import get_provider
-        
+
         provider = get_provider(model=model)
 
     # Detect language
@@ -116,13 +114,13 @@ Task:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ]
-        
+
         response = provider.generate(
             messages=messages,
             temperature=0.7,
             json_mode=True,  # Request JSON output
         )
-        
+
         raw_content = response.content
         data = safe_json_parse(raw_content)
         items = data.get("items", [])
