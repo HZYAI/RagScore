@@ -9,6 +9,8 @@
   **Generate high-quality QA datasets to evaluate your RAG systems**
   
   🔒 **Privacy-First** • ⚡ **Lightweight** • 🤖 **Multi-Provider** • 🏠 **Local LLM Support**
+  
+  [English](README.md) | [中文](README_CN.md) | [日本語](README_JP.md)
 </div>
 
 ---
