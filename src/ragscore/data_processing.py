@@ -116,7 +116,7 @@ def chunk_text(
     """Splits text into chunks using NLTK tokenizer."""
     if not text:
         return []
-    
+
     # Try to tokenize with fallback for NLTK version issues
     try:
         tokens = nltk.word_tokenize(text)
@@ -124,7 +124,7 @@ def chunk_text(
         # Fallback: simple whitespace tokenization if NLTK data is missing
         print("Warning: NLTK tokenizer unavailable, using simple whitespace tokenization")
         tokens = text.split()
-    
+
     chunks = []
     i = 0
     while i < len(tokens):
