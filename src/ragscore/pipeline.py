@@ -124,28 +124,32 @@ def run_pipeline(paths=None, docs_dir=None):
 
     # --- 2. Generate QA Pairs ---
     print("\n--- Generating QA Pairs ---")
+    print("💡 Tip: Press Ctrl+C to stop and save progress at any time")
 
     all_qas = []
-    for chunk in tqdm(all_chunks, desc="Generating QAs"):
-        # Skip very short chunks
-        if len(chunk["text"].split()) < 40:
-            continue
+    try:
+        for chunk in tqdm(all_chunks, desc="Generating QAs"):
+            # Skip very short chunks
+            if len(chunk["text"].split()) < 40:
+                continue
 
-        difficulty = random.choice(config.DIFFICULTY_MIX)
-        try:
-            items = generate_qa_for_chunk(chunk["text"], difficulty, n=config.NUM_Q_PER_CHUNK)
-            for item in items:
-                item.update(
-                    {
-                        "doc_id": chunk["doc_id"],
-                        "chunk_id": chunk["chunk_id"],
-                        "source_path": chunk["path"],
-                        "difficulty": difficulty,
-                    }
-                )
-                all_qas.append(item)
-        except Exception as e:
-            print(f"Error generating QA for chunk {chunk['chunk_id']}: {e}")
+            difficulty = random.choice(config.DIFFICULTY_MIX)
+            try:
+                items = generate_qa_for_chunk(chunk["text"], difficulty, n=config.NUM_Q_PER_CHUNK)
+                for item in items:
+                    item.update(
+                        {
+                            "doc_id": chunk["doc_id"],
+                            "chunk_id": chunk["chunk_id"],
+                            "source_path": chunk["path"],
+                            "difficulty": difficulty,
+                        }
+                    )
+                    all_qas.append(item)
+            except Exception as e:
+                print(f"Error generating QA for chunk {chunk['chunk_id']}: {e}")
+    except KeyboardInterrupt:
+        print("\n\n⚠️  Interrupted by user. Saving progress...")
 
     # --- 3. Save Results ---
     if not all_qas:
