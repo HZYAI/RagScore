@@ -281,7 +281,7 @@ ragscore/
 - 📖 Check the [documentation](https://ragscore.dev/docs)
 - 🐛 Search [existing issues](https://github.com/ragscore/ragscore/issues)
 - 💬 Ask in [discussions](https://github.com/ragscore/ragscore/discussions)
-- 📧 Email: team@ragscore.dev
+- 📧 Email: team@ragscore.io
 
 ## Recognition
 
