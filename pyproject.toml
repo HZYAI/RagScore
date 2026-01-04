@@ -4,15 +4,27 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ragscore"
-version = "0.4.6"
-description = "Privacy-first QA dataset generator for RAG evaluation. Works with local LLMs (Ollama, vLLM) or cloud providers."
+version = "0.4.7"
+description = "Privacy-first QA dataset generator for RAG evaluation and fine-tuning. Works with local LLMs (Ollama, vLLM) or cloud providers."
 readme = "README.md"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.9,<3.13"
 authors = [
     {name = "RAGScore Team", email = "team@ragscore.io"}
 ]
-keywords = ["rag", "evaluation", "qa-generation", "llm", "nlp", "faiss"]
+keywords = [
+    "rag",
+    "qa-generation",
+    "llm",
+    "local-llm",
+    "ollama",
+    "fine-tuning",
+    "lora",
+    "distillation",
+    "synthetic-data",
+    "evaluation",
+    "golden-dataset",
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
