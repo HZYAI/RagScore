@@ -3,8 +3,7 @@ import random
 
 from tqdm import tqdm
 
-from . import config
-from . import __version__
+from . import __version__, config
 from .data_processing import chunk_text, initialize_nltk
 from .llm import generate_qa_for_chunk
 

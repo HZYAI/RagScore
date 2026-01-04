@@ -12,15 +12,15 @@ Note: This is RAGScore Generate (free, open source)
 🚀 QUICK START (Copy-Paste Ready):
   # 1. Set API key (or use local Ollama)
   export OPENAI_API_KEY="sk-your-key-here"
-  
+
   # 2. Generate QA pairs
   ragscore generate document.pdf
-  
+
   # 3. Output saved to: output/generated_qas.jsonl
 
 📚 COMMON COMMANDS:
   ragscore generate file.pdf           # Single file
-  ragscore generate *.pdf              # Multiple files  
+  ragscore generate *.pdf              # Multiple files
   ragscore generate ./docs/            # Directory
 
 🔧 SUPPORTED LLMS (Auto-detected):
