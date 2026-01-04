@@ -4,6 +4,7 @@ import random
 from tqdm import tqdm
 
 from . import config
+from . import __version__
 from .data_processing import chunk_text, initialize_nltk
 from .llm import generate_qa_for_chunk
 
@@ -137,6 +138,7 @@ def run_pipeline(paths=None, docs_dir=None):
             try:
                 items = generate_qa_for_chunk(chunk["text"], difficulty, n=config.NUM_Q_PER_CHUNK)
                 for item in items:
+                    # Add source info
                     item.update(
                         {
                             "doc_id": chunk["doc_id"],
@@ -145,6 +147,13 @@ def run_pipeline(paths=None, docs_dir=None):
                             "difficulty": difficulty,
                         }
                     )
+                    # Add watermark metadata (won't leak into fine-tuned models)
+                    item["metadata"] = {
+                        "generator": "RAGScore Generate",
+                        "version": __version__,
+                        "license": "Apache-2.0",
+                        "repo": "https://github.com/HZYAI/RagScore",
+                    }
                     all_qas.append(item)
             except Exception as e:
                 print(f"Error generating QA for chunk {chunk['chunk_id']}: {e}")

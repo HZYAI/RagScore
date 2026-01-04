@@ -2,10 +2,53 @@ from typing import Optional
 
 import typer
 
+HELP_TEXT = """
+RAGScore Generate - QA Pair Generation for RAG & Fine-Tuning
+Privacy-first, works with local LLMs or cloud providers
+
+Note: This is RAGScore Generate (free, open source)
+      Pro features & evaluation coming soon!
+
+🚀 QUICK START (Copy-Paste Ready):
+  # 1. Set API key (or use local Ollama)
+  export OPENAI_API_KEY="sk-your-key-here"
+  
+  # 2. Generate QA pairs
+  ragscore generate document.pdf
+  
+  # 3. Output saved to: output/generated_qas.jsonl
+
+📚 COMMON COMMANDS:
+  ragscore generate file.pdf           # Single file
+  ragscore generate *.pdf              # Multiple files  
+  ragscore generate ./docs/            # Directory
+
+🔧 SUPPORTED LLMS (Auto-detected):
+  ✅ OpenAI (set OPENAI_API_KEY)
+  ✅ Anthropic (set ANTHROPIC_API_KEY)
+  ✅ Ollama (runs locally, free - no key needed)
+  ✅ DashScope, Groq, Together, DeepSeek
+
+💡 TIPS:
+  - Press Ctrl+C anytime to save progress
+  - Use Ollama for free local generation
+  - Supports PDF, TXT, MD, and more
+
+� TROUBLESHOOTING:
+  Error: "No API key"     → Set OPENAI_API_KEY or install Ollama
+  Error: "NLTK data"      → Auto-downloads on first run
+  Error: "File not found" → Check file path
+
+📖 Docs: https://github.com/HZYAI/RagScore#readme
+💬 Issues: https://github.com/HZYAI/RagScore/issues
+⭐ Star: https://github.com/HZYAI/RagScore
+"""
+
 app = typer.Typer(
     name="ragscore",
-    help="Generate high-quality QA datasets to evaluate RAG systems.",
+    help=HELP_TEXT,
     add_completion=False,
+    rich_markup_mode="markdown",
 )
 
 
