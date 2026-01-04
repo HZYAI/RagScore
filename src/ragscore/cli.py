@@ -34,13 +34,14 @@ Note: This is RAGScore Generate (free, open source)
   - Use Ollama for free local generation
   - Supports PDF, TXT, MD, and more
 
-� TROUBLESHOOTING:
+🐛 TROUBLESHOOTING:
   Error: "No API key"     → Set OPENAI_API_KEY or install Ollama
   Error: "NLTK data"      → Auto-downloads on first run
   Error: "File not found" → Check file path
 
 📖 Docs: https://github.com/HZYAI/RagScore#readme
-💬 Issues: https://github.com/HZYAI/RagScore/issues
+💬 Community: https://github.com/HZYAI/RagScore/discussions
+🐛 Issues: https://github.com/HZYAI/RagScore/issues
 ⭐ Star: https://github.com/HZYAI/RagScore
 """
 
