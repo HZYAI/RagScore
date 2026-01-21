@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ragscore"
-version = "0.5.0"
+version = "0.5.1"
 description = "Privacy-first QA dataset generator for RAG evaluation and fine-tuning. Works with local LLMs (Ollama, vLLM) or cloud providers."
 readme = "README.md"
 license = {text = "Apache-2.0"}
