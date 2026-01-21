@@ -8,7 +8,7 @@ import asyncio
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import aiohttp
 from tqdm.asyncio import tqdm_asyncio
@@ -289,7 +289,7 @@ async def evaluate_rag(
     )
 
 
-def load_golden_qas(path: str | Path) -> list[dict[str, Any]]:
+def load_golden_qas(path: Union[str, Path]) -> list[dict[str, Any]]:
     """
     Load golden QA pairs from a JSONL file.
 
@@ -322,9 +322,9 @@ def load_golden_qas(path: str | Path) -> list[dict[str, Any]]:
 
 
 def run_evaluation(
-    golden_path: str | Path,
+    golden_path: Union[str, Path],
     endpoint: str,
-    output_path: Optional[str | Path] = None,
+    output_path: Optional[Union[str, Path]] = None,
     concurrency: int = 5,
     question_field: str = "question",
     answer_field: str = "answer",
