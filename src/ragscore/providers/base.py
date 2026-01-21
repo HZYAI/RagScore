@@ -75,6 +75,41 @@ class BaseLLMProvider(ABC):
         """
         pass
 
+    async def agenerate(
+        self,
+        messages: list[dict[str, str]],
+        temperature: Optional[float] = None,
+        json_mode: bool = False,
+        **kwargs,
+    ) -> LLMResponse:
+        """
+        Async generate text from the LLM.
+
+        Default implementation runs synchronous generate() in a thread pool.
+        Providers can override this with native async implementations.
+
+        Args:
+            messages: List of message dicts with 'role' and 'content'
+            temperature: Override default temperature
+            json_mode: Request JSON output format
+            **kwargs: Additional generation options
+
+        Returns:
+            LLMResponse with generated content
+        """
+        import asyncio
+        from functools import partial
+
+        loop = asyncio.get_running_loop()
+        func = partial(
+            self.generate,
+            messages=messages,
+            temperature=temperature,
+            json_mode=json_mode,
+            **kwargs,
+        )
+        return await loop.run_in_executor(None, func)
+
     def embed(self, texts: list[str], **kwargs) -> list[list[float]]:
         """
         Generate embeddings for texts.

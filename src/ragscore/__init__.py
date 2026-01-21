@@ -12,11 +12,12 @@ Usage:
 For more information, see: https://github.com/ragscore/ragscore
 """
 
-__version__ = "0.4.7"
+__version__ = "0.5.0"
 __author__ = "RAGScore Team"
 
 # Core functionality
 from .data_processing import chunk_text, read_docs
+from .evaluation import EvaluationSummary, RAGClient, evaluate_rag, run_evaluation
 
 # Exceptions
 from .exceptions import (
@@ -26,17 +27,23 @@ from .exceptions import (
     MissingAPIKeyError,
     RAGScoreError,
 )
-from .llm import generate_qa_for_chunk
+from .llm import agenerate_qa_for_chunk, generate_qa_for_chunk
 from .pipeline import run_pipeline
 
 __all__ = [
     # Version
     "__version__",
-    # Core
+    # Core - Generation
     "run_pipeline",
     "read_docs",
     "chunk_text",
     "generate_qa_for_chunk",
+    "agenerate_qa_for_chunk",
+    # Core - Evaluation
+    "run_evaluation",
+    "evaluate_rag",
+    "EvaluationSummary",
+    "RAGClient",
     # Exceptions
     "RAGScoreError",
     "ConfigurationError",

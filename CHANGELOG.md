@@ -5,6 +5,33 @@ All notable changes to RAGScore will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-01-21
+
+### Added
+- **RAG Evaluation System** - New `ragscore evaluate` command
+  - LLM-as-judge scoring (1-5 scale)
+  - Automatic incorrect pair detection
+  - JSON output with detailed results
+  - Support for custom RAG endpoint field mapping
+- **Async Generation** - 5-10x faster QA generation
+  - Concurrent LLM calls with configurable concurrency
+  - Semaphore-based rate limiting
+  - Exponential backoff for 429 errors
+- **New CLI Options**
+  - `--concurrency` / `-c` for parallel processing
+  - `--model` for specifying judge LLM
+  - `--output` / `-o` for saving evaluation results
+- **Improved CLI Help** - Structured, AI-agent friendly help text
+
+### Changed
+- `ragscore evaluate` now takes endpoint as positional argument
+- Default golden QA path is `output/generated_qas.jsonl`
+- Progress bars show real-time evaluation status
+- README completely rewritten with 2-line workflow focus
+
+### Dependencies
+- Added `aiohttp>=3.9.0` for async HTTP requests
+
 ## [Unreleased]
 
 ### Added
@@ -91,7 +118,7 @@ If you were using a development version:
 
 ## Links
 
-- [GitHub Repository](https://github.com/ragscore/ragscore)
-- [Documentation](https://ragscore.dev/docs)
+- [GitHub Repository](https://github.com/HZYAI/RagScore)
+- [Documentation](https://github.com/HZYAI/RagScore#readme)
 - [PyPI Package](https://pypi.org/project/ragscore/)
-- [Issue Tracker](https://github.com/ragscore/ragscore/issues)
+- [Issue Tracker](https://github.com/HZYAI/RagScore/issues)

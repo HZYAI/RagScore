@@ -1,11 +1,13 @@
+import asyncio
 import json
 import random
 
 from tqdm import tqdm
+from tqdm.asyncio import tqdm_asyncio
 
 from . import __version__, config
 from .data_processing import chunk_text, initialize_nltk
-from .llm import generate_qa_for_chunk
+from .llm import agenerate_qa_for_chunk
 
 
 def _read_from_paths(paths):
@@ -73,7 +75,93 @@ def _read_from_paths(paths):
     return all_docs
 
 
-def run_pipeline(paths=None, docs_dir=None):
+async def _async_generate_qas(
+    chunks: list[dict],
+    concurrency: int = 5,
+    provider=None,
+) -> list[dict]:
+    """
+    Async QA generation with rate limiting via Semaphore.
+
+    Args:
+        chunks: List of chunk dictionaries
+        concurrency: Max concurrent LLM calls (default: 5)
+        provider: LLM provider instance (auto-detected if None)
+
+    Returns:
+        List of generated QA pairs
+    """
+    if provider is None:
+        from .providers import get_provider
+
+        provider = get_provider()
+
+    semaphore = asyncio.Semaphore(concurrency)
+    all_qas = []
+    errors = []
+
+    async def process_chunk(chunk: dict) -> list[dict]:
+        """Process a single chunk with rate limiting and retry."""
+        difficulty = random.choice(config.DIFFICULTY_MIX)
+        max_retries = 3
+        retry_delay = 1.0
+
+        for attempt in range(max_retries):
+            async with semaphore:
+                try:
+                    items = await agenerate_qa_for_chunk(
+                        chunk["text"], difficulty, n=config.NUM_Q_PER_CHUNK, provider=provider
+                    )
+
+                    # Add metadata to each item
+                    for item in items:
+                        item.update(
+                            {
+                                "doc_id": chunk["doc_id"],
+                                "chunk_id": chunk["chunk_id"],
+                                "source_path": chunk["path"],
+                                "difficulty": difficulty,
+                            }
+                        )
+                        item["metadata"] = {
+                            "generator": "RAGScore Generate",
+                            "version": __version__,
+                            "license": "Apache-2.0",
+                            "repo": "https://github.com/HZYAI/RagScore",
+                        }
+                    return items
+
+                except Exception as e:
+                    error_str = str(e).lower()
+                    # Check for rate limit errors (429)
+                    if "rate" in error_str or "429" in error_str or "limit" in error_str:
+                        if attempt < max_retries - 1:
+                            wait_time = retry_delay * (2**attempt)  # Exponential backoff
+                            await asyncio.sleep(wait_time)
+                            continue
+                    # Non-retryable error or max retries reached
+                    errors.append(f"Chunk {chunk['chunk_id']}: {e}")
+                    return []
+
+        return []
+
+    # Process all chunks with progress bar
+    tasks = [process_chunk(chunk) for chunk in chunks]
+
+    try:
+        results = await tqdm_asyncio.gather(*tasks, desc="Generating QAs")
+        for items in results:
+            all_qas.extend(items)
+    except KeyboardInterrupt:
+        print("\n\n⚠️  Interrupted by user. Saving progress...")
+
+    if errors:
+        print(f"\n⚠️  {len(errors)} chunks failed to process")
+
+    return all_qas
+
+
+def run_pipeline(paths=None, docs_dir=None, concurrency: int = 5):
     """
     Executes the QA generation pipeline.
 
@@ -83,6 +171,7 @@ def run_pipeline(paths=None, docs_dir=None):
     Args:
         paths: List of file or directory paths to process
         docs_dir: [DEPRECATED] Single directory path (use paths instead)
+        concurrency: Max concurrent LLM calls (default: 5, use higher for local LLMs)
     """
 
     # Ensure directories exist
@@ -122,42 +211,18 @@ def run_pipeline(paths=None, docs_dir=None):
 
     print(f"Created {len(all_chunks)} chunks from {len(docs)} documents")
 
+    # Filter out short chunks
+    valid_chunks = [c for c in all_chunks if len(c["text"].split()) >= 40]
+    print(
+        f"Processing {len(valid_chunks)} chunks (skipped {len(all_chunks) - len(valid_chunks)} short chunks)"
+    )
+
     # --- 2. Generate QA Pairs ---
     print("\n--- Generating QA Pairs ---")
     print("💡 Tip: Press Ctrl+C to stop and save progress at any time")
 
-    all_qas = []
-    try:
-        for chunk in tqdm(all_chunks, desc="Generating QAs"):
-            # Skip very short chunks
-            if len(chunk["text"].split()) < 40:
-                continue
-
-            difficulty = random.choice(config.DIFFICULTY_MIX)
-            try:
-                items = generate_qa_for_chunk(chunk["text"], difficulty, n=config.NUM_Q_PER_CHUNK)
-                for item in items:
-                    # Add source info
-                    item.update(
-                        {
-                            "doc_id": chunk["doc_id"],
-                            "chunk_id": chunk["chunk_id"],
-                            "source_path": chunk["path"],
-                            "difficulty": difficulty,
-                        }
-                    )
-                    # Add watermark metadata (won't leak into fine-tuned models)
-                    item["metadata"] = {
-                        "generator": "RAGScore Generate",
-                        "version": __version__,
-                        "license": "Apache-2.0",
-                        "repo": "https://github.com/HZYAI/RagScore",
-                    }
-                    all_qas.append(item)
-            except Exception as e:
-                print(f"Error generating QA for chunk {chunk['chunk_id']}: {e}")
-    except KeyboardInterrupt:
-        print("\n\n⚠️  Interrupted by user. Saving progress...")
+    # Use async generation for speed
+    all_qas = asyncio.run(_async_generate_qas(valid_chunks, concurrency=concurrency))
 
     # --- 3. Save Results ---
     if not all_qas:
@@ -170,3 +235,5 @@ def run_pipeline(paths=None, docs_dir=None):
             f.write(json.dumps(qa, ensure_ascii=False) + "\n")
 
     print(f"✅ Pipeline complete! Results saved to {config.GENERATED_QAS_PATH}")
+    print("\n⭐ Enjoying RAGScore? Star us: https://github.com/HZYAI/RagScore")
+    print("💬 Questions? Join discussions: https://github.com/HZYAI/RagScore/discussions")

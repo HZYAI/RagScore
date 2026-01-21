@@ -3,46 +3,46 @@ from typing import Optional
 import typer
 
 HELP_TEXT = """
-RAGScore Generate - QA Pair Generation for RAG & Fine-Tuning
-Privacy-first, works with local LLMs or cloud providers
+RAGScore - Generate QA datasets & evaluate RAG systems in 2 commands
 
-Note: This is RAGScore Generate (free, open source)
-      Pro features & evaluation coming soon!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚡ 2-LINE RAG EVALUATION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🚀 QUICK START (Copy-Paste Ready):
-  # 1. Set API key (or use local Ollama)
-  export OPENAI_API_KEY="sk-your-key-here"
+  ragscore generate docs/                         # Step 1: Generate QAs
+  ragscore evaluate http://localhost:8000/query   # Step 2: Evaluate RAG
 
-  # 2. Generate QA pairs
-  ragscore generate document.pdf
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📚 COMMANDS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  # 3. Output saved to: output/generated_qas.jsonl
+  generate <paths>     Generate QA pairs from documents (PDF, TXT, MD)
+  evaluate <endpoint>  Evaluate RAG system against golden QA pairs
 
-📚 COMMON COMMANDS:
-  ragscore generate file.pdf           # Single file
-  ragscore generate *.pdf              # Multiple files
-  ragscore generate ./docs/            # Directory
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧 SUPPORTED LLMS (auto-detected):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🔧 SUPPORTED LLMS (Auto-detected):
-  ✅ OpenAI (set OPENAI_API_KEY)
-  ✅ Anthropic (set ANTHROPIC_API_KEY)
-  ✅ Ollama (runs locally, free - no key needed)
-  ✅ DashScope, Groq, Together, DeepSeek
+  Ollama     ollama serve                    (local, free, private)
+  OpenAI     export OPENAI_API_KEY="sk-..."  (best quality)
+  Anthropic  export ANTHROPIC_API_KEY="..."  (long context)
+  DashScope  export DASHSCOPE_API_KEY="..."  (Qwen models)
 
-💡 TIPS:
-  - Press Ctrl+C anytime to save progress
-  - Use Ollama for free local generation
-  - Supports PDF, TXT, MD, and more
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📖 EXAMPLES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🐛 TROUBLESHOOTING:
-  Error: "No API key"     → Set OPENAI_API_KEY or install Ollama
-  Error: "NLTK data"      → Auto-downloads on first run
-  Error: "File not found" → Check file path
+  ragscore generate paper.pdf                 # Single file
+  ragscore generate docs/*.pdf -c 10          # Batch with concurrency
+  ragscore evaluate http://api/query          # Evaluate RAG
+  ragscore evaluate http://api/query -o out.json  # Save results
 
-📖 Docs: https://github.com/HZYAI/RagScore#readme
-💬 Community: https://github.com/HZYAI/RagScore/discussions
-🐛 Issues: https://github.com/HZYAI/RagScore/issues
-⭐ Star: https://github.com/HZYAI/RagScore
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔗 LINKS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Docs:    https://github.com/HZYAI/RagScore
+  Issues:  https://github.com/HZYAI/RagScore/issues
 """
 
 app = typer.Typer(
@@ -60,6 +60,12 @@ def generate(
     ),
     docs_dir: Optional[str] = typer.Option(
         None, "--docs-dir", "-d", help="[DEPRECATED] Use positional arguments instead"
+    ),
+    concurrency: int = typer.Option(
+        5,
+        "--concurrency",
+        "-c",
+        help="Max concurrent LLM calls (default: 5, use 10-20 for local LLMs)",
     ),
 ):
     """
@@ -103,7 +109,7 @@ def generate(
         paths = [docs_dir]
 
     try:
-        run_pipeline(paths=paths)
+        run_pipeline(paths=paths, concurrency=concurrency)
     except ValueError as e:
         typer.secho(f"\n❌ Configuration error: {e}", fg=typer.colors.RED)
         typer.secho("\n💡 Tip: Set your API key with:", fg=typer.colors.YELLOW)
@@ -140,6 +146,74 @@ def main(
 
     if ctx.invoked_subcommand is None:
         typer.echo(ctx.get_help())
+
+
+@app.command("evaluate")
+def evaluate(
+    endpoint: str = typer.Argument(
+        ..., help="RAG API endpoint URL (e.g., http://localhost:8000/query)"
+    ),
+    golden: Optional[str] = typer.Option(
+        None, "--golden", "-g", help="Path to golden QA pairs (default: output/generated_qas.jsonl)"
+    ),
+    output: Optional[str] = typer.Option(
+        None, "--output", "-o", help="Save results to JSON file (optional)"
+    ),
+    concurrency: int = typer.Option(
+        5, "--concurrency", "-c", help="Max concurrent requests (default: 5)"
+    ),
+    question_field: str = typer.Option(
+        "question", "--question-field", help="Field name for question in RAG request"
+    ),
+    answer_field: str = typer.Option(
+        "answer", "--answer-field", help="Field name for answer in RAG response"
+    ),
+    method: str = typer.Option("POST", "--method", "-m", help="HTTP method (POST or GET)"),
+    model: Optional[str] = typer.Option(
+        None, "--model", help="LLM model for judging (e.g., gpt-4o, claude-3-sonnet)"
+    ),
+):
+    """
+    Evaluate your RAG system against golden QA pairs.
+
+    \b
+    Usage:
+      ragscore evaluate http://localhost:8000/query
+
+    \b
+    This will:
+      1. Load QA pairs from output/generated_qas.jsonl (or --golden path)
+      2. Query your RAG endpoint with each question
+      3. Score answers using LLM-as-judge (1-5 scale)
+      4. Show results + incorrect pairs in terminal
+    """
+    from . import config
+    from .evaluation import run_evaluation
+
+    # Default golden path to generated QAs
+    if golden is None:
+        golden = str(config.GENERATED_QAS_PATH)
+
+    try:
+        run_evaluation(
+            golden_path=golden,
+            endpoint=endpoint,
+            output_path=output,
+            concurrency=concurrency,
+            question_field=question_field,
+            answer_field=answer_field,
+            method=method,
+            model=model,
+        )
+    except FileNotFoundError as e:
+        typer.secho(f"\n❌ File not found: {e}", fg=typer.colors.RED)
+        raise typer.Exit(code=1) from None
+    except ValueError as e:
+        typer.secho(f"\n❌ Configuration error: {e}", fg=typer.colors.RED)
+        raise typer.Exit(code=1) from None
+    except Exception as e:
+        typer.secho(f"\n❌ Error: {e}", fg=typer.colors.RED)
+        raise typer.Exit(code=1) from e
 
 
 if __name__ == "__main__":
