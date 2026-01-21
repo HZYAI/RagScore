@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ragscore"
 version = "0.5.1"
-description = "Privacy-first QA dataset generator for RAG evaluation and fine-tuning. Works with local LLMs (Ollama, vLLM) or cloud providers."
+description = "Generate QA datasets & evaluate RAG systems in 2 commands. Privacy-first, works with any LLM (local or cloud). Async, fast, zero config."
 readme = "README.md"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.9,<3.13"
@@ -14,13 +14,15 @@ authors = [
 ]
 keywords = [
     "rag",
+    "rag-evaluation",
     "qa-generation",
     "llm",
+    "llm-as-judge",
     "local-llm",
     "ollama",
+    "async",
+    "privacy",
     "fine-tuning",
-    "lora",
-    "distillation",
     "synthetic-data",
     "evaluation",
     "golden-dataset",

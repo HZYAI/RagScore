@@ -1,8 +1,9 @@
 name: Publish to PyPI
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*'  # Trigger on any tag starting with 'v' (e.g., v0.5.1)
 
 jobs:
   publish:
