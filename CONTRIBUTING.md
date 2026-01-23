@@ -266,10 +266,11 @@ ragscore/
 │   ├── data_processing.py # Document processing
 │   ├── vector_store.py    # FAISS operations
 │   ├── llm.py             # QA generation
-│   ├── assessment.py      # RAG evaluation
+│   ├── evaluation.py      # RAG evaluation (v0.5.0+)
+│   ├── pipeline.py        # Async QA generation
 │   ├── exceptions.py      # Custom exceptions
 │   ├── providers/         # LLM providers
-│   └── web/               # Web interface
+│   └── cli.py             # CLI commands
 ├── tests/                 # Test suite
 ├── docs/                  # Documentation
 ├── examples/              # Example scripts
@@ -278,9 +279,9 @@ ragscore/
 
 ## Getting Help
 
-- 📖 Check the [documentation](https://ragscore.dev/docs)
-- 🐛 Search [existing issues](https://github.com/ragscore/ragscore/issues)
-- 💬 Ask in [discussions](https://github.com/ragscore/ragscore/discussions)
+- 📖 Check the [documentation](https://github.com/HZYAI/RagScore#readme)
+- 🐛 Search [existing issues](https://github.com/HZYAI/RagScore/issues)
+- 💬 Ask in [discussions](https://github.com/HZYAI/RagScore/discussions)
 - 📧 Email: team@ragscore.io
 
 ## Recognition

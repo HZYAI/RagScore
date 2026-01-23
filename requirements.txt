@@ -10,6 +10,7 @@ faiss-cpu>=1.7.4
 numpy<2.0.0
 typer[all]>=0.9.0
 python-dotenv>=1.0.0
+aiohttp>=3.9.0
 
 # DashScope provider (default)
 dashscope>=1.14.1
