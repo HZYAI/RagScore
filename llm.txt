@@ -1,0 +1,146 @@
+# RAGScore
+
+> Generate QA datasets & evaluate RAG systems in 2 commands. Privacy-first, works with any LLM.
+
+## What is RAGScore?
+
+RAGScore is an open-source Python tool that:
+1. **Generates QA pairs** from your documents (PDF, TXT, MD)
+2. **Evaluates RAG systems** using LLM-as-judge scoring
+
+## Quick Start
+
+```bash
+pip install ragscore
+
+# Generate QA pairs from documents
+ragscore generate docs/
+
+# Evaluate your RAG endpoint
+ragscore evaluate http://localhost:8000/query
+```
+
+## Key Features
+
+- **Privacy-first**: Works with local LLMs (Ollama, vLLM) - data never leaves your machine
+- **Async & fast**: 5-10x faster with concurrent generation
+- **Any LLM**: OpenAI, Anthropic, Ollama, DashScope, Groq, Together, and more
+- **Zero config**: Auto-detects LLM from environment variables
+- **LLM-as-judge**: Scores RAG answers 1-5 with explanations
+
+## Project Structure
+
+```
+src/ragscore/
+├── cli.py              # CLI commands (generate, evaluate)
+├── pipeline.py         # Async QA generation pipeline
+├── evaluation.py       # RAG evaluation with LLM-as-judge
+├── llm.py              # QA generation from text chunks
+├── data_processing.py  # Document reading and chunking
+├── providers/          # LLM provider implementations
+│   ├── base.py         # BaseLLMProvider abstract class
+│   ├── openai_provider.py
+│   ├── anthropic_provider.py
+│   ├── ollama_provider.py
+│   └── ...
+└── exceptions.py       # Custom exceptions
+```
+
+## CLI Commands
+
+### `ragscore generate`
+Generate QA pairs from documents.
+
+```bash
+ragscore generate <paths> [--concurrency 5]
+```
+
+Options:
+- `paths`: Files or directories to process
+- `--concurrency, -c`: Max concurrent LLM calls (default: 5)
+
+Output: `output/generated_qas.jsonl`
+
+### `ragscore evaluate`
+Evaluate a RAG system against golden QA pairs.
+
+```bash
+ragscore evaluate <endpoint> [options]
+```
+
+Options:
+- `endpoint`: RAG API URL (positional, required)
+- `--golden, -g`: Path to golden QAs (default: output/generated_qas.jsonl)
+- `--output, -o`: Save results to JSON file
+- `--model`: LLM model for judging
+- `--concurrency, -c`: Max concurrent calls (default: 5)
+- `--question-field`: JSON field for question (default: "question")
+- `--answer-field`: JSON field for answer (default: "answer")
+
+## Python API
+
+```python
+from ragscore import run_pipeline, run_evaluation
+
+# Generate QA pairs
+run_pipeline(paths=["docs/"], concurrency=10)
+
+# Evaluate RAG
+results = run_evaluation(
+    endpoint="http://localhost:8000/query",
+    model="gpt-4o",
+)
+print(f"Accuracy: {results.accuracy:.1%}")
+```
+
+## Environment Variables
+
+```bash
+# LLM Providers (set one)
+OPENAI_API_KEY="sk-..."
+ANTHROPIC_API_KEY="..."
+DASHSCOPE_API_KEY="..."
+GROQ_API_KEY="..."
+
+# Local LLM (no key needed)
+# Just run: ollama serve
+
+# Custom OpenAI-compatible endpoint
+LLM_BASE_URL="http://localhost:8000/v1"
+```
+
+## Output Formats
+
+### Generated QA (`output/generated_qas.jsonl`)
+```json
+{
+  "id": "abc123",
+  "question": "What is RAG?",
+  "answer": "RAG combines retrieval with generation...",
+  "difficulty": "medium",
+  "source_path": "docs/intro.pdf"
+}
+```
+
+### Evaluation Results
+```json
+{
+  "summary": {
+    "total": 100,
+    "correct": 85,
+    "accuracy": 0.85,
+    "avg_score": 4.2
+  },
+  "incorrect_pairs": [...]
+}
+```
+
+## Links
+
+- GitHub: https://github.com/HZYAI/RagScore
+- PyPI: https://pypi.org/project/ragscore/
+- Issues: https://github.com/HZYAI/RagScore/issues
+
+## Version
+
+Current: 0.5.1
