@@ -143,4 +143,4 @@ LLM_BASE_URL="http://localhost:8000/v1"
 
 ## Version
 
-Current: 0.5.1
+Current: 0.5.2

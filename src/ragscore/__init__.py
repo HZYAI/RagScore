@@ -12,7 +12,7 @@ Usage:
 For more information, see: https://github.com/ragscore/ragscore
 """
 
-__version__ = "0.5.1"
+__version__ = "0.5.2"
 __author__ = "RAGScore Team"
 
 # Core functionality
