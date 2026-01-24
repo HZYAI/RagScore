@@ -4,17 +4,20 @@ RAGScore Quick Test Module
 Fast, notebook-friendly RAG evaluation in a single function call.
 Generates QA pairs and evaluates RAG in one pipeline.
 
+Returns a "Rich Object" with metrics, DataFrame, and visualization.
+
 Usage:
     from ragscore import quick_test
     
-    # Test with HTTP endpoint
+    # 1. Audit your RAG in one line
     result = quick_test("http://localhost:8000/query", docs="docs/")
     
-    # Test with a function (no server needed)
-    result = quick_test(my_rag_function, docs="docs/")
+    # 2. See the report
+    result.plot()
     
-    # Get results as DataFrame
-    df = quick_test(endpoint, docs="docs/", return_df=True)
+    # 3. Inspect failures
+    bad_rows = result.df[result.df['score'] < 3]
+    display(bad_rows[['question', 'rag_answer', 'reason']])
 """
 
 import asyncio
@@ -34,13 +37,31 @@ from .ui import get_async_pbar, patch_asyncio
 
 @dataclass
 class QuickTestResult:
-    """Result of a quick RAG test."""
+    """
+    Result of a quick RAG test.
+    
+    The "Rich Object" pattern - contains data, DataFrame, and visualization.
+    
+    Usage:
+        result = quick_test(endpoint, docs="docs/")
+        
+        # Access metrics
+        print(f"Accuracy: {result.accuracy:.1%}")
+        
+        # Access DataFrame
+        result.df.head()
+        bad_rows = result.df[result.df['score'] < 3]
+        
+        # Visualize
+        result.plot()
+    """
     
     total: int = 0
     correct: int = 0
     accuracy: float = 0.0
     avg_score: float = 0.0
     passed: bool = False
+    threshold: float = 0.7
     details: List[dict] = field(default_factory=list)
     corrections: List[dict] = field(default_factory=list)
     
@@ -48,24 +69,100 @@ class QuickTestResult:
         status = "✅ PASSED" if self.passed else "❌ FAILED"
         return f"QuickTestResult({status}: {self.correct}/{self.total} correct, {self.accuracy:.0%} accuracy)"
     
+    @property
+    def df(self):
+        """
+        Results as a pandas DataFrame.
+        
+        Columns: question, golden_answer, rag_answer, score, reason, is_correct, source
+        """
+        try:
+            import pandas as pd
+            return pd.DataFrame(self.details)
+        except ImportError:
+            raise ImportError(
+                "pandas is required for .df property. "
+                "Install with: pip install pandas"
+            )
+    
+    def plot(self, figsize: tuple = (12, 4)):
+        """
+        Generate a 3-panel visualization of the test results.
+        
+        Panel 1: Pass/Fail pie chart (Is it good?)
+        Panel 2: Score distribution histogram (How good?)
+        Panel 3: Corrections count (What to fix?)
+        
+        Args:
+            figsize: Figure size tuple (width, height)
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            print("⚠️ Plotting requires matplotlib. Install with: pip install matplotlib")
+            return
+        
+        fig, axes = plt.subplots(1, 3, figsize=figsize)
+        
+        # Panel 1: Pass/Fail Pie Chart
+        colors = ['#4CAF50', '#f44336'] if self.passed else ['#f44336', '#4CAF50']
+        if self.correct > 0 or self.total - self.correct > 0:
+            axes[0].pie(
+                [self.correct, self.total - self.correct],
+                labels=['Correct', 'Incorrect'],
+                colors=['#4CAF50', '#f44336'],
+                autopct='%1.0f%%',
+                startangle=90,
+            )
+        axes[0].set_title(f"Accuracy: {self.accuracy:.0%}\n({'PASSED' if self.passed else 'FAILED'} @ {self.threshold:.0%} threshold)")
+        
+        # Panel 2: Score Distribution
+        if self.details:
+            scores = [d.get("score", 0) for d in self.details]
+            axes[1].hist(scores, bins=[0.5, 1.5, 2.5, 3.5, 4.5, 5.5], 
+                        edgecolor='black', color='#2196F3', rwidth=0.8)
+            axes[1].set_xlabel('Score')
+            axes[1].set_ylabel('Count')
+            axes[1].set_xticks([1, 2, 3, 4, 5])
+        axes[1].set_title(f"Score Distribution\n(avg: {self.avg_score:.1f}/5.0)")
+        
+        # Panel 3: Corrections Summary
+        axes[2].axis('off')
+        n_corrections = len(self.corrections)
+        if n_corrections > 0:
+            axes[2].text(0.5, 0.6, f"{n_corrections}", 
+                        ha='center', va='center', fontsize=48, fontweight='bold',
+                        color='#f44336')
+            axes[2].text(0.5, 0.3, "corrections needed", 
+                        ha='center', va='center', fontsize=14, color='#666')
+        else:
+            axes[2].text(0.5, 0.5, "✓", 
+                        ha='center', va='center', fontsize=64, color='#4CAF50')
+            axes[2].text(0.5, 0.2, "No corrections needed", 
+                        ha='center', va='center', fontsize=12, color='#666')
+        axes[2].set_title("Items to Fix")
+        
+        plt.tight_layout()
+        plt.show()
+        
+        return fig
+    
     def to_dict(self) -> dict:
+        """Convert to dictionary for JSON serialization."""
         return {
             "total": self.total,
             "correct": self.correct,
             "accuracy": round(self.accuracy, 4),
             "avg_score": round(self.avg_score, 2),
             "passed": self.passed,
+            "threshold": self.threshold,
             "details": self.details,
             "corrections": self.corrections,
         }
     
     def to_dataframe(self):
-        """Convert results to pandas DataFrame."""
-        try:
-            import pandas as pd
-            return pd.DataFrame(self.details)
-        except ImportError:
-            raise ImportError("pandas is required for to_dataframe(). Install with: pip install pandas")
+        """Deprecated: Use .df property instead."""
+        return self.df
 
 
 def _read_docs_for_quicktest(docs: Union[str, List[str], Path]) -> List[dict]:
@@ -309,6 +406,7 @@ async def _quick_test_async(
             accuracy=0.0,
             avg_score=0.0,
             passed=False,
+            threshold=threshold,
             details=[],
             corrections=[],
         )
@@ -326,6 +424,7 @@ async def _quick_test_async(
         accuracy=accuracy,
         avg_score=avg_score,
         passed=passed,
+        threshold=threshold,
         details=results,
         corrections=corrections,
     )
@@ -338,13 +437,13 @@ def quick_test(
     threshold: float = 0.7,
     concurrency: int = 5,
     silent: bool = False,
-    return_df: bool = False,
     model: Optional[str] = None,
     judge_model: Optional[str] = None,
-) -> Union[QuickTestResult, "pd.DataFrame"]:
+) -> QuickTestResult:
     """
     Quick RAG accuracy test - generate QAs and evaluate in one call.
     
+    Returns a Rich Object with metrics, DataFrame, and visualization.
     Perfect for notebooks, CI/CD, and rapid iteration.
     
     Args:
@@ -354,18 +453,27 @@ def quick_test(
         threshold: Pass/fail accuracy threshold (default: 0.7 = 70%)
         concurrency: Max concurrent operations (default: 5)
         silent: Suppress progress output (default: False)
-        return_df: Return pandas DataFrame instead of QuickTestResult
         model: LLM model for QA generation (auto-detected if None)
         judge_model: LLM model for judging (uses model if None)
     
     Returns:
-        QuickTestResult with accuracy, details, and corrections
-        Or pandas DataFrame if return_df=True
+        QuickTestResult - Rich Object with:
+            - .accuracy, .total, .correct, .passed - metrics
+            - .df - pandas DataFrame of all results
+            - .plot() - 3-panel visualization
+            - .corrections - list of items to fix
     
     Examples:
         # Basic usage
         result = quick_test("http://localhost:8000/query", docs="docs/")
         print(f"Accuracy: {result.accuracy:.0%}")
+        
+        # Access DataFrame
+        result.df.head()
+        bad_rows = result.df[result.df['score'] < 3]
+        
+        # Visualize results
+        result.plot()
         
         # With a function (no server needed)
         def my_rag(question):
@@ -376,10 +484,6 @@ def quick_test(
         def test_rag_accuracy():
             result = quick_test(endpoint, docs="docs/", threshold=0.8)
             assert result.passed, f"RAG accuracy too low: {result.accuracy:.0%}"
-        
-        # Get DataFrame for analysis
-        df = quick_test(endpoint, docs="docs/", return_df=True)
-        df[df["is_correct"] == False]  # View failures
     """
     # Get providers
     provider = None
@@ -420,10 +524,7 @@ def quick_test(
         
         if result.corrections:
             print(f"\n❌ {len(result.corrections)} incorrect answers found.")
-            print("Use result.corrections to get correction data for injection.")
-    
-    if return_df:
-        return result.to_dataframe()
+            print("Use result.df to inspect, result.plot() to visualize.")
     
     return result
 
