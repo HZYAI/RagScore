@@ -52,8 +52,39 @@ Average Score: 4.20/5.0
 ```bash
 pip install ragscore              # Core (works with Ollama)
 pip install "ragscore[openai]"    # + OpenAI support
+pip install "ragscore[notebook]"  # + Jupyter/Colab support
 pip install "ragscore[all]"       # + All providers
 ```
+
+### Option 1: Python API (Notebook-Friendly)
+
+Perfect for **Jupyter, Colab, and rapid iteration**. Get instant visualizations.
+
+```python
+from ragscore import quick_test
+
+# 1. Audit your RAG in one line
+result = quick_test(
+    endpoint="http://localhost:8000/query",  # Your RAG API
+    docs="docs/",                            # Your documents
+    n=10,                                    # Number of test questions
+)
+
+# 2. See the report
+result.plot()
+
+# 3. Inspect failures
+bad_rows = result.df[result.df['score'] < 3]
+display(bad_rows[['question', 'rag_answer', 'reason']])
+```
+
+**Rich Object API:**
+- `result.accuracy` - Accuracy score
+- `result.df` - Pandas DataFrame of all results
+- `result.plot()` - 3-panel visualization
+- `result.corrections` - List of items to fix
+
+### Option 2: CLI (Production)
 
 ### Generate QA Pairs
 

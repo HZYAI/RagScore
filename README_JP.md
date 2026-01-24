@@ -52,8 +52,39 @@ ragscore evaluate http://localhost:8000/query
 ```bash
 pip install ragscore              # コア版（Ollama対応）
 pip install "ragscore[openai]"    # + OpenAIサポート
+pip install "ragscore[notebook]"  # + Jupyter/Colabサポート
 pip install "ragscore[all]"       # + 全プロバイダー
 ```
+
+### オプション1：Python API（ノートブック向け）
+
+**Jupyter、Colab、迅速な反復**に最適。即座に可視化を取得。
+
+```python
+from ragscore import quick_test
+
+# 1. 1行でRAGを監査
+result = quick_test(
+    endpoint="http://localhost:8000/query",  # RAG API
+    docs="docs/",                            # ドキュメント
+    n=10,                                    # テスト質問数
+)
+
+# 2. レポートを表示
+result.plot()
+
+# 3. 失敗を検査
+bad_rows = result.df[result.df['score'] < 3]
+display(bad_rows[['question', 'rag_answer', 'reason']])
+```
+
+**リッチオブジェクトAPI：**
+- `result.accuracy` - 精度スコア
+- `result.df` - 全結果のPandas DataFrame
+- `result.plot()` - 3パネル可視化
+- `result.corrections` - 修正が必要な項目リスト
+
+### オプション2：CLI（本番環境）
 
 ### QAペアの生成
 

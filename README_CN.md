@@ -52,8 +52,39 @@ ragscore evaluate http://localhost:8000/query
 ```bash
 pip install ragscore              # 核心版（支持 Ollama）
 pip install "ragscore[openai]"    # + OpenAI 支持
+pip install "ragscore[notebook]"  # + Jupyter/Colab 支持
 pip install "ragscore[all]"       # + 所有提供商
 ```
+
+### 方式 1：Python API（适合 Notebook）
+
+适合 **Jupyter、Colab 和快速迭代**。获得即时可视化。
+
+```python
+from ragscore import quick_test
+
+# 1. 一行代码审计您的 RAG
+result = quick_test(
+    endpoint="http://localhost:8000/query",  # 您的 RAG API
+    docs="docs/",                            # 您的文档
+    n=10,                                    # 测试问题数量
+)
+
+# 2. 查看报告
+result.plot()
+
+# 3. 检查失败项
+bad_rows = result.df[result.df['score'] < 3]
+display(bad_rows[['question', 'rag_answer', 'reason']])
+```
+
+**丰富对象 API：**
+- `result.accuracy` - 准确率分数
+- `result.df` - 所有结果的 Pandas DataFrame
+- `result.plot()` - 三面板可视化
+- `result.corrections` - 需要修复的项目列表
+
+### 方式 2：CLI（生产环境）
 
 ### 生成问答对
 
