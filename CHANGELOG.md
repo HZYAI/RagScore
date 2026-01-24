@@ -5,6 +5,21 @@ All notable changes to RAGScore will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-01-24
+
+### Changed
+- **README updates** - Added Python API section with `quick_test()` examples
+  - Shows Rich Object pattern (`.df`, `.plot()`, `.corrections`)
+  - Organized as "Option 1: Python API" and "Option 2: CLI"
+  - Updated all language versions (EN, CN, JP)
+- **Demo.ipynb improvements** - Crash-proofed for Colab
+  - Added explicit `nest_asyncio.apply()` safety net
+  - Auto-creates sample document to prevent empty folder errors
+  - Ensures zero-friction out-of-the-box experience
+
+### Fixed
+- Added `[notebook]` install option to README install section
+
 ## [0.6.0] - 2026-01-24
 
 ### Added
