@@ -65,6 +65,7 @@ dmypy.json
 # Jupyter Notebooks
 .ipynb_checkpoints/
 *.ipynb
+!examples/*.ipynb
 
 # Temporary files
 temp_*.py

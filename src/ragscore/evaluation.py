@@ -11,10 +11,10 @@ from pathlib import Path
 from typing import Any, Optional, Union
 
 import aiohttp
-from tqdm.asyncio import tqdm_asyncio
 
 from .exceptions import RAGScoreError
 from .llm import detect_language, safe_json_parse
+from .ui import get_async_pbar, patch_asyncio
 
 
 @dataclass
@@ -270,7 +270,8 @@ async def evaluate_rag(
             return await _judge_single(qa, rag_answer, provider, semaphore)
 
         tasks = [process_qa(qa) for qa in golden_qas]
-        results: list[EvaluationResult] = await tqdm_asyncio.gather(*tasks, desc="Evaluating")
+        async_pbar = get_async_pbar()
+        results: list[EvaluationResult] = await async_pbar.gather(*tasks, desc="Evaluating")
 
     # Calculate summary
     total = len(results)
@@ -367,6 +368,9 @@ def run_evaluation(
     from .providers import get_provider
 
     provider = get_provider(model=model) if model else get_provider()
+
+    # Patch asyncio for notebook environments
+    patch_asyncio()
 
     # Run evaluation
     print(f"\nEvaluating against RAG endpoint: {endpoint}")

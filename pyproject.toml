@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ragscore"
-version = "0.5.2"
+version = "0.6.0"
 description = "Generate QA datasets & evaluate RAG systems in 2 commands. Privacy-first, works with any LLM (local or cloud). Async, fast, zero config."
 readme = "README.md"
 license = {text = "Apache-2.0"}
@@ -69,9 +69,18 @@ dashscope = [
 providers = [
     "ragscore[openai,anthropic,dashscope]",
 ]
+# --- Notebook Support ---
+notebook = [
+    "nest_asyncio>=1.5.0",
+    "pandas>=2.0.0",
+]
+# --- MCP Server (AI Assistant Integration) ---
+mcp = [
+    "mcp>=1.0.0",
+]
 # All providers (recommended)
 all = [
-    "ragscore[providers]",
+    "ragscore[providers,notebook]",
 ]
 # Development dependencies
 dev = [

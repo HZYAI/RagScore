@@ -5,6 +5,29 @@ All notable changes to RAGScore will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-01-24
+
+### Added
+- **`quick_test()` function** - One-liner RAG evaluation for notebooks and CI/CD
+  - Pass HTTP endpoint or Python function directly
+  - Returns `QuickTestResult` with accuracy, details, and corrections
+  - `return_df=True` option for pandas DataFrame output
+  - Automatic correction export for RAG improvement
+- **MCP Server** - AI assistant integration via Model Context Protocol
+  - `ragscore serve` command starts MCP server
+  - Works with Claude Desktop, Cursor, and other MCP-compatible assistants
+  - Tools: `generate_qa_dataset`, `evaluate_rag`, `quick_test_rag`, `get_corrections`
+- **Notebook support** - Works in Jupyter and Google Colab
+  - Auto-patches asyncio with `nest_asyncio` for notebook compatibility
+  - `examples/demo.ipynb` with Ollama-in-Colab setup
+- New optional dependencies:
+  - `ragscore[notebook]` - Jupyter/Colab support (nest_asyncio, pandas)
+  - `ragscore[mcp]` - MCP server support
+
+### Changed
+- Updated `llm.txt` with v0.6.0 features and MCP instructions
+- CLI help text now includes `serve` command and MCP section
+
 ## [0.5.2] - 2026-01-23
 
 ### Added

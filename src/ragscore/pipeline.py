@@ -2,12 +2,10 @@ import asyncio
 import json
 import random
 
-from tqdm import tqdm
-from tqdm.asyncio import tqdm_asyncio
-
 from . import __version__, config
 from .data_processing import chunk_text, initialize_nltk
 from .llm import agenerate_qa_for_chunk
+from .ui import get_async_pbar, get_pbar, patch_asyncio
 
 
 def _read_from_paths(paths):
@@ -53,7 +51,7 @@ def _read_from_paths(paths):
 
     import PyPDF2
 
-    for file_path in tqdm(files_to_process, desc="Reading documents"):
+    for file_path in get_pbar(files_to_process, desc="Reading documents"):
         text = ""
         try:
             if file_path.suffix.lower() == ".pdf":
@@ -149,7 +147,8 @@ async def _async_generate_qas(
     tasks = [process_chunk(chunk) for chunk in chunks]
 
     try:
-        results = await tqdm_asyncio.gather(*tasks, desc="Generating QAs")
+        async_pbar = get_async_pbar()
+        results = await async_pbar.gather(*tasks, desc="Generating QAs")
         for items in results:
             all_qas.extend(items)
     except KeyboardInterrupt:
@@ -221,6 +220,9 @@ def run_pipeline(paths=None, docs_dir=None, concurrency: int = 5):
     print("\n--- Generating QA Pairs ---")
     print("💡 Tip: Press Ctrl+C to stop and save progress at any time")
 
+    # Patch asyncio for notebook environments
+    patch_asyncio()
+    
     # Use async generation for speed
     all_qas = asyncio.run(_async_generate_qas(valid_chunks, concurrency=concurrency))
 

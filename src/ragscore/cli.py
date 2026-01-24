@@ -18,6 +18,7 @@ RAGScore - Generate QA datasets & evaluate RAG systems in 2 commands
 
   generate <paths>     Generate QA pairs from documents (PDF, TXT, MD)
   evaluate <endpoint>  Evaluate RAG system against golden QA pairs
+  serve                Start MCP server for AI assistant integration
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🔧 SUPPORTED LLMS (auto-detected):
@@ -36,6 +37,13 @@ RAGScore - Generate QA datasets & evaluate RAG systems in 2 commands
   ragscore generate docs/*.pdf -c 10          # Batch with concurrency
   ragscore evaluate http://api/query          # Evaluate RAG
   ragscore evaluate http://api/query -o out.json  # Save results
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🤖 AI ASSISTANT INTEGRATION (MCP):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ragscore serve                              # Start MCP server
+  # Then add to Claude Desktop config to use RAGScore from Claude!
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🔗 LINKS:
@@ -146,6 +154,43 @@ def main(
 
     if ctx.invoked_subcommand is None:
         typer.echo(ctx.get_help())
+
+
+@app.command("serve")
+def serve():
+    """
+    Start the RAGScore MCP server for AI assistant integration.
+
+    \b
+    This allows AI assistants (Claude Desktop, Cursor, etc.) to use
+    RAGScore tools directly via the Model Context Protocol (MCP).
+
+    \b
+    Setup for Claude Desktop:
+      Add to ~/Library/Application Support/Claude/claude_desktop_config.json:
+
+      {
+        "mcpServers": {
+          "ragscore": {
+            "command": "ragscore",
+            "args": ["serve"]
+          }
+        }
+      }
+
+    \b
+    Requires: pip install ragscore[mcp]
+    """
+    try:
+        from .mcp_server import run_server
+        run_server()
+    except ImportError as e:
+        typer.secho(
+            "\n❌ MCP not installed. Install with: pip install ragscore[mcp]",
+            fg=typer.colors.RED,
+        )
+        typer.secho("   Or: pip install mcp", fg=typer.colors.YELLOW)
+        raise typer.Exit(code=1) from None
 
 
 @app.command("evaluate")

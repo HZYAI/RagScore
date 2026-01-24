@@ -5,19 +5,24 @@ Usage:
     # Command line
     $ ragscore generate
 
-    # Python API
-    >>> from ragscore import run_pipeline
+    # Python API (works in Jupyter/Colab!)
+    >>> from ragscore import run_pipeline, quick_test
     >>> run_pipeline()
 
-For more information, see: https://github.com/ragscore/ragscore
+For more information, see: https://github.com/HZYAI/RagScore
 """
 
-__version__ = "0.5.2"
+__version__ = "0.6.0"
 __author__ = "RAGScore Team"
+
+# Auto-patch asyncio for notebook environments on import
+from .ui import patch_asyncio as _patch_asyncio
+_patch_asyncio()
 
 # Core functionality
 from .data_processing import chunk_text, read_docs
 from .evaluation import EvaluationSummary, RAGClient, evaluate_rag, run_evaluation
+from .quick_test import quick_test
 
 # Exceptions
 from .exceptions import (
@@ -44,6 +49,8 @@ __all__ = [
     "evaluate_rag",
     "EvaluationSummary",
     "RAGClient",
+    # Core - Quick Test (Notebook-friendly)
+    "quick_test",
     # Exceptions
     "RAGScoreError",
     "ConfigurationError",
