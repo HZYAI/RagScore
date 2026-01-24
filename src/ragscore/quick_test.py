@@ -337,7 +337,7 @@ async def _quick_test_async(
                     return None
 
                 # 2. Query RAG endpoint
-                if is_function:
+                if is_function and callable(endpoint):
                     # Call function directly
                     try:
                         if asyncio.iscoroutinefunction(endpoint):
