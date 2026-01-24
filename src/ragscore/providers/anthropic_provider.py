@@ -56,7 +56,7 @@ class AnthropicProvider(BaseLLMProvider):
             self.client = anthropic.Anthropic(api_key=self.api_key)
         except ImportError as e:
             raise ImportError(
-                "anthropic package not installed. " "Install with: pip install anthropic"
+                "anthropic package not installed. Install with: pip install anthropic"
             ) from e
 
         logger.info(f"Initialized Anthropic provider with model: {self.model}")
@@ -117,6 +117,5 @@ class AnthropicProvider(BaseLLMProvider):
         Use OpenAI or another provider for embeddings.
         """
         raise NotImplementedError(
-            "Anthropic doesn't provide embeddings. "
-            "Use OpenAI or another provider for embeddings."
+            "Anthropic doesn't provide embeddings. Use OpenAI or another provider for embeddings."
         )

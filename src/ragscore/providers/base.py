@@ -125,8 +125,7 @@ class BaseLLMProvider(ABC):
             NotImplementedError: If provider doesn't support embeddings
         """
         raise NotImplementedError(
-            f"{self.provider_name} does not support embeddings. "
-            "Use a dedicated embedding provider."
+            f"{self.provider_name} does not support embeddings. Use a dedicated embedding provider."
         )
 
     def _validate_messages(self, messages: list[dict[str, str]]) -> None:

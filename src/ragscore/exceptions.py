@@ -38,7 +38,7 @@ class InvalidProviderError(ConfigurationError):
         self.provider = provider
         self.valid_providers = valid_providers
         super().__init__(
-            f"Invalid provider '{provider}'. " f"Valid providers are: {', '.join(valid_providers)}"
+            f"Invalid provider '{provider}'. Valid providers are: {', '.join(valid_providers)}"
         )
 
 
@@ -56,7 +56,7 @@ class UnsupportedFileTypeError(DocumentProcessingError):
         self.file_path = file_path
         self.supported_types = supported_types
         super().__init__(
-            f"Unsupported file type: {file_path}\n" f"Supported types: {', '.join(supported_types)}"
+            f"Unsupported file type: {file_path}\nSupported types: {', '.join(supported_types)}"
         )
 
 
@@ -132,6 +132,5 @@ class QAFileNotFoundError(AssessmentError):
     def __init__(self, qa_path: str):
         self.qa_path = qa_path
         super().__init__(
-            f"QA pairs file not found: {qa_path}\n"
-            f"Run 'ragscore generate' first to create QA pairs."
+            f"QA pairs file not found: {qa_path}\nRun 'ragscore generate' first to create QA pairs."
         )

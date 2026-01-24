@@ -222,7 +222,7 @@ def run_pipeline(paths=None, docs_dir=None, concurrency: int = 5):
 
     # Patch asyncio for notebook environments
     patch_asyncio()
-    
+
     # Use async generation for speed
     all_qas = asyncio.run(_async_generate_qas(valid_chunks, concurrency=concurrency))
 

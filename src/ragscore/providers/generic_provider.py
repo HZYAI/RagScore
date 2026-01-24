@@ -139,7 +139,7 @@ class GenericOpenAIProvider(BaseLLMProvider):
             )
         except ImportError as e:
             raise ImportError(
-                "openai package not installed. " "Install with: pip install openai"
+                "openai package not installed. Install with: pip install openai"
             ) from e
 
         logger.info(

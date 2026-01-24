@@ -64,7 +64,7 @@ class DashScopeProvider(BaseLLMProvider):
             self._generation = Generation
         except ImportError as e:
             raise ImportError(
-                "dashscope package not installed. " "Install with: pip install dashscope"
+                "dashscope package not installed. Install with: pip install dashscope"
             ) from e
 
     def generate(

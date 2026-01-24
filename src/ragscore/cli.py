@@ -183,8 +183,9 @@ def serve():
     """
     try:
         from .mcp_server import run_server
+
         run_server()
-    except ImportError as e:
+    except ImportError:
         typer.secho(
             "\n❌ MCP not installed. Install with: pip install ragscore[mcp]",
             fg=typer.colors.RED,

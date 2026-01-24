@@ -17,12 +17,12 @@ __author__ = "RAGScore Team"
 
 # Auto-patch asyncio for notebook environments on import
 from .ui import patch_asyncio as _patch_asyncio
+
 _patch_asyncio()
 
 # Core functionality
 from .data_processing import chunk_text, read_docs
 from .evaluation import EvaluationSummary, RAGClient, evaluate_rag, run_evaluation
-from .quick_test import quick_test
 
 # Exceptions
 from .exceptions import (
@@ -34,6 +34,7 @@ from .exceptions import (
 )
 from .llm import agenerate_qa_for_chunk, generate_qa_for_chunk
 from .pipeline import run_pipeline
+from .quick_test import quick_test
 
 __all__ = [
     # Version

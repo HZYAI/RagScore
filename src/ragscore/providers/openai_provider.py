@@ -73,7 +73,7 @@ class OpenAIProvider(BaseLLMProvider):
             self._client = OpenAI(**client_kwargs)
         except ImportError as e:
             raise ImportError(
-                "openai package not installed. " "Install with: pip install openai"
+                "openai package not installed. Install with: pip install openai"
             ) from e
 
     def generate(
@@ -202,5 +202,5 @@ class AzureOpenAIProvider(OpenAIProvider):
             )
         except ImportError as e:
             raise ImportError(
-                "openai package not installed. " "Install with: pip install openai"
+                "openai package not installed. Install with: pip install openai"
             ) from e

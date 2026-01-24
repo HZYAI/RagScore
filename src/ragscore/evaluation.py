@@ -387,7 +387,7 @@ def run_evaluation(
     )
 
     # Print summary
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     if summary.accuracy >= 0.9:
         status = "✅ EXCELLENT"
     elif summary.accuracy >= 0.7:
@@ -397,9 +397,9 @@ def run_evaluation(
     else:
         status = "❌ POOR"
 
-    print(f"{status}: {summary.correct}/{summary.total} correct ({summary.accuracy*100:.1f}%)")
+    print(f"{status}: {summary.correct}/{summary.total} correct ({summary.accuracy * 100:.1f}%)")
     print(f"Average Score: {summary.avg_score:.2f}/5.0")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     # Print incorrect pairs
     incorrect = [r for r in summary.results if not r.is_correct]
