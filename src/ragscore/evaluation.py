@@ -332,6 +332,7 @@ def run_evaluation(
     method: str = "POST",
     headers: Optional[dict[str, str]] = None,
     model: Optional[str] = None,
+    provider: Optional[str] = None,
 ) -> EvaluationSummary:
     """
     Run RAG evaluation pipeline (synchronous wrapper).
@@ -346,6 +347,7 @@ def run_evaluation(
         method: HTTP method (POST or GET)
         headers: Optional HTTP headers for RAG endpoint
         model: LLM model for judging (auto-detected if None)
+        provider: LLM provider for judging (e.g., 'ollama', 'openai'). Auto-detected if None.
 
     Returns:
         EvaluationSummary with results
@@ -367,21 +369,21 @@ def run_evaluation(
     # Get LLM provider for judging
     from .providers import get_provider
 
-    provider = get_provider(model=model) if model else get_provider()
+    llm_provider = get_provider(provider=provider, model=model)
 
     # Patch asyncio for notebook environments
     patch_asyncio()
 
     # Run evaluation
     print(f"\nEvaluating against RAG endpoint: {endpoint}")
-    print(f"Judge model: {provider.model}")
+    print(f"Judge LLM: {llm_provider.provider_name} ({llm_provider.model})")
     print(f"Concurrency: {concurrency}")
 
     summary = asyncio.run(
         evaluate_rag(
             golden_qas=golden_qas,
             rag_client=rag_client,
-            provider=provider,
+            provider=llm_provider,
             concurrency=concurrency,
         )
     )
