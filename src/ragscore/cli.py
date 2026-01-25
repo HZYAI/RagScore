@@ -75,6 +75,18 @@ def generate(
         "-c",
         help="Max concurrent LLM calls (default: 5, use 10-20 for local LLMs)",
     ),
+    provider: Optional[str] = typer.Option(
+        None,
+        "--provider",
+        "-p",
+        help="LLM provider (openai, ollama, anthropic, dashscope, etc.)",
+    ),
+    model: Optional[str] = typer.Option(
+        None,
+        "--model",
+        "-m",
+        help="Model name (e.g., llama3, gpt-4o, claude-3-sonnet)",
+    ),
 ):
     """
     Generate QA pairs from your documents.
@@ -117,7 +129,7 @@ def generate(
         paths = [docs_dir]
 
     try:
-        run_pipeline(paths=paths, concurrency=concurrency)
+        run_pipeline(paths=paths, concurrency=concurrency, provider=provider, model=model)
     except ValueError as e:
         typer.secho(f"\n❌ Configuration error: {e}", fg=typer.colors.RED)
         typer.secho("\n💡 Tip: Set your API key with:", fg=typer.colors.YELLOW)

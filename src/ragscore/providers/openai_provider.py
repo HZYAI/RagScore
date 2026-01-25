@@ -56,10 +56,12 @@ class OpenAIProvider(BaseLLMProvider):
         if not api_key:
             raise MissingAPIKeyError("OpenAI", "OPENAI_API_KEY")
 
-        model = model or self.DEFAULT_MODEL
+        # Check for model override via env var (useful for Ollama masquerade)
+        model = model or os.getenv("OPENAI_MODEL_NAME") or self.DEFAULT_MODEL
         super().__init__(api_key, model, temperature, **kwargs)
 
-        self.base_url = base_url
+        # Check for base_url override via env var (useful for Ollama/local servers)
+        self.base_url = base_url or os.getenv("OPENAI_BASE_URL")
         self.embedding_model = embedding_model or self.EMBEDDING_MODEL
 
         # Import and configure openai
@@ -67,8 +69,8 @@ class OpenAIProvider(BaseLLMProvider):
             from openai import OpenAI
 
             client_kwargs = {"api_key": self.api_key}
-            if base_url:
-                client_kwargs["base_url"] = base_url
+            if self.base_url:
+                client_kwargs["base_url"] = self.base_url
 
             self._client = OpenAI(**client_kwargs)
         except ImportError as e:

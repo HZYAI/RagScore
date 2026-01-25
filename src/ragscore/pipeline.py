@@ -160,7 +160,7 @@ async def _async_generate_qas(
     return all_qas
 
 
-def run_pipeline(paths=None, docs_dir=None, concurrency: int = 5):
+def run_pipeline(paths=None, docs_dir=None, concurrency: int = 5, provider: str = None, model: str = None):
     """
     Executes the QA generation pipeline.
 
@@ -171,6 +171,8 @@ def run_pipeline(paths=None, docs_dir=None, concurrency: int = 5):
         paths: List of file or directory paths to process
         docs_dir: [DEPRECATED] Single directory path (use paths instead)
         concurrency: Max concurrent LLM calls (default: 5, use higher for local LLMs)
+        provider: LLM provider name (e.g., 'ollama', 'openai'). Auto-detected if None.
+        model: Model name (e.g., 'llama3', 'gpt-4o'). Uses provider default if None.
     """
 
     # Ensure directories exist
@@ -223,8 +225,13 @@ def run_pipeline(paths=None, docs_dir=None, concurrency: int = 5):
     # Patch asyncio for notebook environments
     patch_asyncio()
 
+    # Get LLM provider (explicit or auto-detected)
+    from .providers import get_provider
+    llm_provider = get_provider(provider=provider, model=model)
+    print(f"Using LLM: {llm_provider.provider_name} ({llm_provider.model})")
+
     # Use async generation for speed
-    all_qas = asyncio.run(_async_generate_qas(valid_chunks, concurrency=concurrency))
+    all_qas = asyncio.run(_async_generate_qas(valid_chunks, concurrency=concurrency, provider=llm_provider))
 
     # --- 3. Save Results ---
     if not all_qas:

@@ -5,6 +5,18 @@ All notable changes to RAGScore will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.3] - 2026-01-25
+
+### Added
+- **CLI `--provider` and `--model` options** - Force specific LLM provider from command line
+  - `ragscore generate docs/ --provider ollama --model llama3`
+  - Enables explicit Ollama usage without env var workarounds
+
+### Fixed
+- **Ollama "masquerade" mode** - OpenAI provider now reads `OPENAI_MODEL_NAME` and `OPENAI_BASE_URL` env vars
+  - Fixes "model 'gpt-4o-mini' not found" error when routing OpenAI calls to local Ollama
+- **Pipeline now shows active LLM** - Prints provider and model name before generation starts
+
 ## [0.6.2] - 2026-01-25
 
 ### Changed
