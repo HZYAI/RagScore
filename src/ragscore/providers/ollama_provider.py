@@ -45,7 +45,7 @@ class OllamaProvider(BaseLLMProvider):
         self,
         model: str = None,
         base_url: str = None,
-        timeout: int = 120,  # Local models can be slow
+        timeout: int = 300,  # Local models can be slow, especially reasoning models
         **kwargs,
     ):
         """
