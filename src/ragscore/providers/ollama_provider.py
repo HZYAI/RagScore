@@ -83,9 +83,9 @@ class OllamaProvider(BaseLLMProvider):
 
     def generate(
         self,
-        prompt: str,
-        system_prompt: Optional[str] = None,
-        temperature: float = 0.7,
+        messages: list[dict[str, str]],
+        temperature: Optional[float] = None,
+        json_mode: bool = False,
         max_tokens: int = 2048,
         **kwargs,
     ) -> LLMResponse:
@@ -93,9 +93,9 @@ class OllamaProvider(BaseLLMProvider):
         Generate text using Ollama.
 
         Args:
-            prompt: User prompt
-            system_prompt: System instruction
-            temperature: Sampling temperature
+            messages: List of message dicts with 'role' and 'content' keys
+            temperature: Sampling temperature (default: 0.7)
+            json_mode: Request JSON output format
             max_tokens: Maximum tokens to generate
 
         Returns:
@@ -104,24 +104,26 @@ class OllamaProvider(BaseLLMProvider):
         if not self._check_server():
             raise LLMConnectionError("Ollama server not running. Start it with: ollama serve")
 
-        # Build messages
-        messages = []
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-        messages.append({"role": "user", "content": prompt})
+        temp = temperature if temperature is not None else 0.7
 
         try:
+            request_json = {
+                "model": self.model,
+                "messages": messages,
+                "stream": False,
+                "options": {
+                    "temperature": temp,
+                    "num_predict": max_tokens,
+                },
+            }
+
+            # Add JSON format hint if requested
+            if json_mode:
+                request_json["format"] = "json"
+
             response = requests.post(
                 f"{self.base_url}/api/chat",
-                json={
-                    "model": self.model,
-                    "messages": messages,
-                    "stream": False,
-                    "options": {
-                        "temperature": temperature,
-                        "num_predict": max_tokens,
-                    },
-                },
+                json=request_json,
                 timeout=self.timeout,
             )
             response.raise_for_status()
