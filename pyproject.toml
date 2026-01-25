@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ragscore"
-version = "0.6.1"
-description = "Generate QA datasets & evaluate RAG systems in 2 commands. Privacy-first, works with any LLM (local or cloud). Async, fast, zero config."
+version = "0.6.2"
+description = "The '1-Minute RAG Audit' - Generate QA datasets & evaluate RAG systems in Colab, Jupyter, or CLI. Privacy-first, async, visual reports."
 readme = "README.md"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.9,<3.13"
@@ -20,12 +20,17 @@ keywords = [
     "llm-as-judge",
     "local-llm",
     "ollama",
+    "jupyter",
+    "colab",
+    "notebook",
+    "visualization",
+    "mcp",
+    "llmops",
     "async",
     "privacy",
-    "fine-tuning",
     "synthetic-data",
     "evaluation",
-    "golden-dataset",
+    "ai-evaluation",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
