@@ -121,6 +121,46 @@ ragscore evaluate http://localhost:8000/query
 
 **Perfect for:** Healthcare 🏥 • Legal ⚖️ • Finance 🏦 • Research 🔬
 
+### Ollama Model Recommendations
+
+RAGScore generates complex structured QA pairs (question + answer + rationale + support span) in JSON format. This requires models with strong instruction-following and JSON output capabilities.
+
+| Model | Size | Min RAM | QA Quality | Recommended |
+|-------|------|---------|------------|-------------|
+| `llama3.1:70b` | 40GB | 48GB VRAM | Excellent | GPU server (A100, L40) |
+| `qwen2.5:32b` | 18GB | 24GB VRAM | Excellent | GPU server (A10, L20) |
+| `llama3.1:8b` | 4.7GB | 8GB VRAM | Good | **Best local choice** |
+| `qwen2.5:7b` | 4.4GB | 8GB VRAM | Good | Good local alternative |
+| `mistral:7b` | 4.1GB | 8GB VRAM | Good | Good local alternative |
+| `llama3.2:3b` | 2.0GB | 4GB RAM | Fair | CPU-only / testing |
+| `qwen2.5:1.5b` | 1.0GB | 2GB RAM | Poor | Not recommended |
+
+> **Minimum recommended: 8B+ models.** Smaller models (1.5B–3B) produce lower quality support spans and may timeout on longer chunks.
+
+### Ollama Performance Guide
+
+```bash
+# Recommended: 8B model with concurrency 2 for local machines
+ollama pull llama3.1:8b
+ragscore generate docs/ --provider ollama --model llama3.1:8b
+
+# GPU server (A10/L20): larger model with higher concurrency
+ollama pull qwen2.5:32b
+ragscore generate docs/ --provider ollama --model qwen2.5:32b --concurrency 5
+```
+
+**Expected performance (28 chunks, 5 QA pairs per chunk):**
+
+| Hardware | Model | Time | Concurrency |
+|----------|-------|------|-------------|
+| MacBook (CPU) | llama3.2:3b | ~45 min | 2 |
+| MacBook (CPU) | llama3.1:8b | ~25 min | 2 |
+| A10 (24GB) | llama3.1:8b | ~3–5 min | 5 |
+| L20/L40 (48GB) | qwen2.5:32b | ~3–5 min | 5 |
+| OpenAI API | gpt-4o-mini | ~2 min | 10 |
+
+> RAGScore auto-reduces concurrency to 2 for local Ollama to avoid GPU/CPU contention.
+
 ---
 
 ## 🔌 Supported LLMs

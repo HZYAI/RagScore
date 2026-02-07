@@ -104,8 +104,8 @@ async def _async_generate_qas(
         max_retries = 3
         retry_delay = 1.0
 
-        for attempt in range(max_retries):
-            async with semaphore:
+        async with semaphore:
+            for attempt in range(max_retries):
                 try:
                     items = await agenerate_qa_for_chunk(
                         chunk["text"], difficulty, n=config.NUM_Q_PER_CHUNK, provider=provider
@@ -141,7 +141,7 @@ async def _async_generate_qas(
                     errors.append(f"Chunk {chunk['chunk_id']}: {e}")
                     return []
 
-        return []
+            return []
 
     # Process all chunks with progress bar
     tasks = [process_chunk(chunk) for chunk in chunks]
@@ -232,6 +232,11 @@ def run_pipeline(
 
     llm_provider = get_provider(provider=provider, model=model)
     print(f"Using LLM: {llm_provider.provider_name} ({llm_provider.model})")
+
+    # Auto-reduce concurrency for local models (they share the same GPU/CPU)
+    if llm_provider.provider_name == "ollama" and concurrency > 2:
+        concurrency = 2
+        print(f"💡 Auto-reduced concurrency to {concurrency} for local Ollama (shared GPU/CPU)")
 
     # Use async generation for speed
     all_qas = asyncio.run(

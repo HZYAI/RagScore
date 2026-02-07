@@ -63,6 +63,9 @@ class OllamaProvider(BaseLLMProvider):
         # Remove trailing slash
         self.base_url = self.base_url.rstrip("/")
 
+        # Check server once at init time
+        self._server_checked = False
+
         logger.info(f"Initialized Ollama provider with model: {self.model}")
 
     @property
@@ -86,7 +89,7 @@ class OllamaProvider(BaseLLMProvider):
         messages: list[dict[str, str]],
         temperature: Optional[float] = None,
         json_mode: bool = False,
-        max_tokens: int = 2048,
+        max_tokens: int = 1024,
         **kwargs,
     ) -> LLMResponse:
         """
@@ -101,8 +104,10 @@ class OllamaProvider(BaseLLMProvider):
         Returns:
             LLMResponse with generated text
         """
-        if not self._check_server():
-            raise LLMConnectionError("Ollama server not running. Start it with: ollama serve")
+        if not self._server_checked:
+            if not self._check_server():
+                raise LLMConnectionError("Ollama server not running. Start it with: ollama serve")
+            self._server_checked = True
 
         temp = temperature if temperature is not None else 0.7
 
