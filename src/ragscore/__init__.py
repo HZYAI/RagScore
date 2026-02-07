@@ -12,7 +12,7 @@ Usage:
 For more information, see: https://github.com/HZYAI/RagScore
 """
 
-__version__ = "0.6.4"
+__version__ = "0.6.5"
 __author__ = "RAGScore Team"
 
 # Auto-patch asyncio for notebook environments on import

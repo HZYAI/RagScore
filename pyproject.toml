@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ragscore"
-version = "0.6.4"
+version = "0.6.5"
 description = "The Fastest RAG Audit - Generate QA datasets & evaluate RAG systems in Colab, Jupyter, or CLI. Privacy-first, lightning fast, visual reports."
 readme = "README.md"
 license = {text = "Apache-2.0"}
-requires-python = ">=3.9,<3.13"
+requires-python = ">=3.9,<3.14"
 authors = [
     {name = "RAGScore Team", email = "team@ragscore.io"}
 ]
@@ -147,7 +147,7 @@ known-first-party = ["ragscore"]
 
 [tool.black]
 line-length = 100
-target-version = ["py39", "py310", "py311", "py312"]
+target-version = ["py39", "py310", "py311", "py312", "py313"]
 
 [tool.mypy]
 python_version = "3.10"
