@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ragscore"
-version = "0.6.3"
+version = "0.6.4"
 description = "The '1-Minute RAG Audit' - Generate QA datasets & evaluate RAG systems in Colab, Jupyter, or CLI. Privacy-first, async, visual reports."
 readme = "README.md"
 license = {text = "Apache-2.0"}
