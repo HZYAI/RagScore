@@ -317,7 +317,9 @@ async def _quick_test_async(
     # Determine if endpoint is a function or URL
     is_function = callable(endpoint)
 
-    async def process_chunk(chunk: dict) -> Optional[dict]:
+    async def process_chunk(
+        chunk: dict, http_session: Optional[aiohttp.ClientSession] = None
+    ) -> Optional[dict]:
         """Generate QA, query RAG, and judge - all in one."""
         async with semaphore:
             try:
@@ -348,20 +350,19 @@ async def _quick_test_async(
                     except Exception as e:
                         rag_answer = f"[ERROR: {e}]"
                 else:
-                    # HTTP endpoint
-                    async with aiohttp.ClientSession() as session:
-                        try:
-                            payload = {"question": question}
-                            async with session.post(
-                                endpoint, json=payload, timeout=aiohttp.ClientTimeout(total=30)
-                            ) as response:
-                                data = await response.json()
-                                rag_answer = data.get(
-                                    "answer", data.get("response", data.get("text", ""))
-                                )
-                                rag_answer = str(rag_answer) if rag_answer else ""
-                        except Exception as e:
-                            rag_answer = f"[ERROR: {e}]"
+                    # HTTP endpoint - use shared session
+                    try:
+                        payload = {"question": question}
+                        async with http_session.post(
+                            endpoint, json=payload, timeout=aiohttp.ClientTimeout(total=30)
+                        ) as resp:
+                            data = await resp.json()
+                            rag_answer = data.get(
+                                "answer", data.get("response", data.get("text", ""))
+                            )
+                            rag_answer = str(rag_answer) if rag_answer else ""
+                    except Exception as e:
+                        rag_answer = f"[ERROR: {e}]"
 
                 # 3. Judge the answer
                 lang = detect_language(question)
@@ -376,10 +377,10 @@ async def _quick_test_async(
                 ]
 
                 try:
-                    response = await judge_provider.agenerate(
+                    judge_resp = await judge_provider.agenerate(
                         messages=messages, temperature=0.3, json_mode=True
                     )
-                    data = safe_json_parse(response.content)
+                    data = safe_json_parse(judge_resp.content)
                     score = max(1, min(5, int(data.get("score", 1))))
                     reason = data.get("reason", "No reason provided")
                 except Exception as e:
@@ -416,14 +417,15 @@ async def _quick_test_async(
                     print(f"Error processing chunk: {e}", file=sys.stderr)
                 return None
 
-    # Process all chunks
-    tasks = [process_chunk(chunk) for chunk in sample_chunks]
+    # Process all chunks with a shared HTTP session
+    async with aiohttp.ClientSession() as shared_session:
+        tasks = [process_chunk(chunk, http_session=shared_session) for chunk in sample_chunks]
 
-    if silent:
-        raw_results = await asyncio.gather(*tasks)
-    else:
-        async_pbar = get_async_pbar()
-        raw_results = await async_pbar.gather(*tasks, desc="Quick Testing")
+        if silent:
+            raw_results = await asyncio.gather(*tasks)
+        else:
+            async_pbar = get_async_pbar()
+            raw_results = await async_pbar.gather(*tasks, desc="Quick Testing")
 
     # Filter out None results
     results = [r for r in raw_results if r is not None]

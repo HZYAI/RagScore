@@ -157,26 +157,29 @@ class GenericOpenAIProvider(BaseLLMProvider):
 
     def generate(
         self,
-        prompt: str,
-        system_prompt: Optional[str] = None,
-        temperature: float = 0.7,
+        messages: list[dict[str, str]],
+        temperature: Optional[float] = None,
+        json_mode: bool = False,
         max_tokens: int = 2048,
         **kwargs,
     ) -> LLMResponse:
         """Generate text using the configured API."""
-        messages = []
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-        messages.append({"role": "user", "content": prompt})
+        temp = temperature if temperature is not None else 0.7
+
+        call_kwargs = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": temp,
+            "max_tokens": max_tokens,
+        }
+
+        if json_mode:
+            call_kwargs["response_format"] = {"type": "json_object"}
+
+        call_kwargs.update(kwargs)
 
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                **kwargs,
-            )
+            response = self.client.chat.completions.create(**call_kwargs)
 
             choice = response.choices[0]
             usage = response.usage

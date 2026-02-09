@@ -71,20 +71,35 @@ class AnthropicProvider(BaseLLMProvider):
 
     def generate(
         self,
-        prompt: str,
-        system_prompt: Optional[str] = None,
-        temperature: float = 0.7,
+        messages: list[dict[str, str]],
+        temperature: Optional[float] = None,
+        json_mode: bool = False,
         max_tokens: int = 2048,
         **kwargs,
     ) -> LLMResponse:
         """Generate text using Claude."""
+        temp = temperature if temperature is not None else 0.7
+
+        # Extract system message from messages list
+        system_prompt = "You are a helpful assistant."
+        chat_messages = []
+        for msg in messages:
+            if msg["role"] == "system":
+                system_prompt = msg["content"]
+            else:
+                chat_messages.append(msg)
+
+        # If json_mode, append instruction to system prompt
+        if json_mode:
+            system_prompt += " Output only valid JSON."
+
         try:
             message = self.client.messages.create(
                 model=self.model,
                 max_tokens=max_tokens,
-                system=system_prompt or "You are a helpful assistant.",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=temperature,
+                system=system_prompt,
+                messages=chat_messages,
+                temperature=temp,
             )
 
             # Extract text content from response
