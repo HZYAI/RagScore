@@ -87,9 +87,7 @@ def detect_language(text: str) -> str:
     return "en"
 
 
-def _build_qa_prompts(
-    chunk_text: str, difficulty: str, n: int, lang: str
-) -> tuple[str, str]:
+def _build_qa_prompts(chunk_text: str, difficulty: str, n: int, lang: str) -> tuple[str, str]:
     """Build system and user prompts for QA generation."""
     if lang == "zh":
         difficulty_map = {"easy": "简单", "medium": "中等", "hard": "困难"}
