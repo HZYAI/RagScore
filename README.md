@@ -7,7 +7,10 @@
   [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
   [![Ollama](https://img.shields.io/badge/Ollama-Supported-orange)](https://ollama.ai)
   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/HZYAI/RagScore/blob/main/examples/complete_demo.ipynb)
+  [![MCP](https://img.shields.io/badge/MCP-Server-purple)](https://modelcontextprotocol.io)
   
+<!-- mcp-name: io.github.hzyai/ragscore -->
+
   **Generate QA datasets & evaluate RAG systems in 2 commands**
   
   🔒 Privacy-First • ⚡ Lightning Fast • 🤖 Any LLM • 🏠 Local or Cloud

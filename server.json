@@ -1,0 +1,37 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.hzyai/ragscore",
+  "title": "RAGScore",
+  "description": "Generate QA datasets & evaluate RAG systems. Privacy-first, any LLM, local or cloud.",
+  "repository": {
+    "url": "https://github.com/HZYAI/RagScore",
+    "source": "github"
+  },
+  "version": "0.6.8",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "ragscore",
+      "version": "0.6.8",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "description": "OpenAI API key (if using OpenAI provider)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true,
+          "name": "OPENAI_API_KEY"
+        },
+        {
+          "description": "Anthropic API key (if using Anthropic provider)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true,
+          "name": "ANTHROPIC_API_KEY"
+        }
+      ]
+    }
+  ]
+}
