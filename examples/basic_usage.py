@@ -4,19 +4,23 @@ Basic RAGScore Usage Example
 This example shows how to generate QA pairs from documents.
 """
 
+from pathlib import Path
+
 from ragscore import run_pipeline
 from ragscore.data_processing import chunk_text, read_docs
 from ragscore.llm import generate_qa_for_chunk
 
 
-def main():
-    # Option 1: Run the full pipeline (easiest)
+def pipeline_example():
+    """Option 1: Run the full pipeline (easiest)."""
     # Just place documents in data/docs/ and run:
     run_pipeline()
 
-    # Option 2: Use individual components
+
+def component_example():
+    """Option 2: Use individual components for more control."""
     # Read documents
-    docs = read_docs(dir_path="./my_documents")
+    docs = read_docs(dir_path=Path("./my_documents"))
 
     # Process each document
     for doc in docs:
@@ -25,7 +29,7 @@ def main():
 
         # Generate QA pairs for each chunk
         for chunk in chunks:
-            qa_pairs = generate_qa_for_chunk(chunk, difficulty="medium", n=3)  # Generate 3 QA pairs
+            qa_pairs = generate_qa_for_chunk(chunk, difficulty="medium", n=3)
 
             for qa in qa_pairs:
                 print(f"Q: {qa['question']}")
@@ -34,4 +38,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # Choose one:
+    pipeline_example()
+    # component_example()
