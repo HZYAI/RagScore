@@ -48,8 +48,9 @@ def create_mcp_server():
     @mcp.tool()
     async def generate_qa_dataset(
         path: str,
-        num_questions: int = 50,
         concurrency: int = 5,
+        provider: Optional[str] = None,
+        model: Optional[str] = None,
     ) -> str:
         """
         Generate QA pairs from documents for RAG evaluation.
@@ -59,8 +60,9 @@ def create_mcp_server():
 
         Args:
             path: Path to file or directory containing documents
-            num_questions: Approximate number of QA pairs to generate
             concurrency: Max concurrent LLM calls (default: 5)
+            provider: LLM provider (openai, anthropic, ollama). Auto-detected if not set.
+            model: LLM model name (e.g. gpt-4o-mini, claude-3-haiku). Uses provider default if not set.
 
         Returns:
             Summary of generation results and path to output file
@@ -73,7 +75,7 @@ def create_mcp_server():
         sys.stdout = sys.stderr
 
         try:
-            run_pipeline(paths=[path], concurrency=concurrency)
+            run_pipeline(paths=[path], concurrency=concurrency, provider=provider, model=model)
             output_path = str(config.GENERATED_QAS_PATH)
 
             # Count generated QAs
@@ -93,6 +95,8 @@ def create_mcp_server():
         endpoint: str,
         dataset_path: Optional[str] = None,
         concurrency: int = 5,
+        provider: Optional[str] = None,
+        model: Optional[str] = None,
     ) -> str:
         """
         Evaluate a RAG API endpoint against a QA dataset.
@@ -104,6 +108,8 @@ def create_mcp_server():
             endpoint: RAG API endpoint URL (e.g., http://localhost:8000/query)
             dataset_path: Path to QA dataset JSONL (default: output/generated_qas.jsonl)
             concurrency: Max concurrent requests (default: 5)
+            provider: LLM provider for judging (openai, anthropic, ollama). Auto-detected if not set.
+            model: LLM model for judging (e.g. gpt-4o-mini). Uses provider default if not set.
 
         Returns:
             Evaluation summary with accuracy and incorrect pairs
@@ -123,6 +129,8 @@ def create_mcp_server():
                 golden_path=dataset_path,
                 endpoint=endpoint,
                 concurrency=concurrency,
+                provider=provider,
+                model=model,
             )
 
             result = f"""📊 RAG Evaluation Results:
@@ -152,6 +160,8 @@ def create_mcp_server():
         docs_path: str,
         num_questions: int = 10,
         threshold: float = 0.7,
+        provider: Optional[str] = None,
+        model: Optional[str] = None,
     ) -> str:
         """
         Quick RAG accuracy test - generate QAs and evaluate in one call.
@@ -163,10 +173,13 @@ def create_mcp_server():
             docs_path: Path to documents to generate test questions from
             num_questions: Number of test questions (default: 10)
             threshold: Pass/fail accuracy threshold (default: 0.7 = 70%)
+            provider: LLM provider (openai, anthropic, ollama). Auto-detected if not set.
+            model: LLM model name. Uses provider default if not set.
 
         Returns:
             Test results with pass/fail status and details
         """
+        from . import config
         from .quick_test import quick_test
 
         # Suppress stdout for MCP
@@ -180,7 +193,15 @@ def create_mcp_server():
                 n=num_questions,
                 threshold=threshold,
                 silent=True,
+                model=model,
             )
+
+            # Save corrections so get_corrections() can retrieve them
+            if result.corrections:
+                corrections_path = Path(config.OUTPUT_DIR) / "quick_test_corrections.jsonl"
+                with open(corrections_path, "w") as f:
+                    for c in result.corrections:
+                        f.write(json.dumps(c, ensure_ascii=False) + "\n")
 
             status = "✅ PASSED" if result.passed else "❌ FAILED"
             output = f"""{status}
@@ -193,7 +214,7 @@ def create_mcp_server():
 """
             if result.corrections:
                 output += f"🔧 {len(result.corrections)} corrections available.\n"
-                output += "Use get_corrections() to retrieve them for injection.\n"
+                output += "Use get_corrections() to retrieve them.\n"
 
             return output
         except Exception as e:
