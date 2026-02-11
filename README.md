@@ -9,7 +9,7 @@
   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/HZYAI/RagScore/blob/main/examples/complete_demo.ipynb)
   [![MCP](https://img.shields.io/badge/MCP-Server-purple)](https://modelcontextprotocol.io)
   
-<!-- mcp-name: io.github.hzyai/ragscore -->
+<!-- mcp-name: io.github.HZYAI/ragscore -->
 
   **Generate QA datasets & evaluate RAG systems in 2 commands**
   
