@@ -77,6 +77,7 @@ async def _async_generate_qas(
     chunks: list[dict],
     concurrency: int = 5,
     provider=None,
+    num_questions: int = None,
 ) -> list[dict]:
     """
     Async QA generation with rate limiting via Semaphore.
@@ -85,10 +86,12 @@ async def _async_generate_qas(
         chunks: List of chunk dictionaries
         concurrency: Max concurrent LLM calls (default: 5)
         provider: LLM provider instance (auto-detected if None)
+        num_questions: Number of QA pairs per chunk (default: config.NUM_Q_PER_CHUNK)
 
     Returns:
         List of generated QA pairs
     """
+    n_per_chunk = num_questions or config.NUM_Q_PER_CHUNK
     if provider is None:
         from .providers import get_provider
 
@@ -108,7 +111,7 @@ async def _async_generate_qas(
             for attempt in range(max_retries):
                 try:
                     items = await agenerate_qa_for_chunk(
-                        chunk["text"], difficulty, n=config.NUM_Q_PER_CHUNK, provider=provider
+                        chunk["text"], difficulty, n=n_per_chunk, provider=provider
                     )
 
                     # Add metadata to each item

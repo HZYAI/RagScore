@@ -70,6 +70,7 @@ def create_mcp_server():
     async def generate_qa_dataset(
         path: str,
         concurrency: int = 5,
+        num_questions: int = 5,
         provider: Optional[str] = None,
         model: Optional[str] = None,
     ) -> str:
@@ -82,6 +83,7 @@ def create_mcp_server():
         Args:
             path: Path to file or directory containing documents
             concurrency: Max concurrent LLM calls (default: 5)
+            num_questions: Number of QA pairs to generate per chunk (default: 5)
             provider: LLM provider (openai, anthropic, ollama). Auto-detected if not set.
             model: LLM model name (e.g. gpt-4o-mini, claude-3-haiku). Uses provider default if not set.
 
@@ -128,7 +130,10 @@ def create_mcp_server():
                 concurrency = 2
 
             all_qas = await _async_generate_qas(
-                all_chunks, concurrency=concurrency, provider=llm_provider
+                all_chunks,
+                concurrency=concurrency,
+                provider=llm_provider,
+                num_questions=num_questions,
             )
 
             if not all_qas:

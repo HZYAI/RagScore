@@ -41,6 +41,21 @@ class OllamaProvider(BaseLLMProvider):
     DEFAULT_MODEL = "llama2"
     DEFAULT_BASE_URL = "http://localhost:11434"
 
+    # Preferred models in order (pick first available)
+    _PREFERRED_MODELS = [
+        "llama3",
+        "llama3.2",
+        "llama3.1",
+        "llama3:8b",
+        "llama3.2:3b",
+        "mistral",
+        "qwen2.5",
+        "qwen2",
+        "phi3",
+        "gemma2",
+        "llama2",
+    ]
+
     def __init__(
         self,
         model: str = None,
@@ -56,15 +71,13 @@ class OllamaProvider(BaseLLMProvider):
             base_url: Ollama server URL (default: http://localhost:11434)
             timeout: Request timeout in seconds
         """
-        self.model = model or os.getenv("OLLAMA_MODEL", self.DEFAULT_MODEL)
         self.base_url = base_url or os.getenv("OLLAMA_BASE_URL", self.DEFAULT_BASE_URL)
-        self.timeout = timeout
-
-        # Remove trailing slash
         self.base_url = self.base_url.rstrip("/")
-
-        # Check server once at init time
+        self.timeout = timeout
         self._server_checked = False
+
+        # Resolve model: explicit > env var > auto-detect > fallback
+        self.model = model or os.getenv("OLLAMA_MODEL") or self._auto_detect_model()
 
         logger.info(f"Initialized Ollama provider with model: {self.model}")
 
@@ -83,6 +96,26 @@ class OllamaProvider(BaseLLMProvider):
             return response.status_code == 200
         except requests.exceptions.RequestException:
             return False
+
+    def _auto_detect_model(self) -> str:
+        """Pick the best available model, preferring llama3 variants."""
+        try:
+            available = self.list_models()
+            if not available:
+                return self.DEFAULT_MODEL
+
+            # Match preferred models (prefix match to handle tags like llama3:8b)
+            for preferred in self._PREFERRED_MODELS:
+                for avail in available:
+                    if avail == preferred or avail.startswith(preferred + ":"):
+                        logger.info(f"Auto-selected Ollama model: {avail}")
+                        return avail
+
+            # No preferred match — use first available
+            logger.info(f"Using first available Ollama model: {available[0]}")
+            return available[0]
+        except Exception:
+            return self.DEFAULT_MODEL
 
     def generate(
         self,
@@ -152,6 +185,16 @@ class OllamaProvider(BaseLLMProvider):
                 f"Ollama request timed out after {self.timeout}s. "
                 "Try a smaller model or increase timeout."
             ) from e
+        except requests.exceptions.HTTPError as e:
+            if e.response is not None and e.response.status_code == 404:
+                available = self.list_models()
+                models_str = ", ".join(available[:10]) if available else "none found"
+                raise LLMError(
+                    f"Model '{self.model}' not found in Ollama. "
+                    f"Available models: [{models_str}]. "
+                    f"Pull it with: ollama pull {self.model}"
+                ) from e
+            raise LLMConnectionError(f"Ollama HTTP error: {e}") from e
         except requests.exceptions.RequestException as e:
             raise LLMConnectionError(f"Failed to connect to Ollama: {e}") from e
 
