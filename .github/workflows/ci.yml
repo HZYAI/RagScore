@@ -86,8 +86,6 @@ jobs:
 
       - name: Check formatting with Black
         run: |
-          black --version
-          black --diff src/ragscore/evaluation.py || true
           black --check src/ tests/
 
       - name: Check linting with Ruff

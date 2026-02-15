@@ -16,7 +16,6 @@ from .exceptions import RAGScoreError
 from .llm import detect_language, safe_json_parse
 from .ui import get_async_pbar, patch_asyncio
 
-
 _DETAILED_METRICS = [
     "correctness",
     "completeness",
