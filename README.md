@@ -85,7 +85,7 @@ display(bad_rows[['question', 'rag_answer', 'reason']])
 **Rich Object API:**
 - `result.accuracy` - Accuracy score
 - `result.df` - Pandas DataFrame of all results
-- `result.plot()` - 3-panel visualization
+- `result.plot()` - 3-panel visualization (4-panel with `detailed=True`)
 - `result.corrections` - List of items to fix
 
 ### Option 2: CLI (Production)
@@ -110,6 +110,59 @@ ragscore evaluate http://localhost:8000/query
 # Custom options
 ragscore evaluate http://api/ask --model gpt-4o --output results.json
 ```
+
+---
+
+## 🔬 Detailed Multi-Metric Evaluation
+
+Go beyond a single score. Add `detailed=True` to get **5 diagnostic dimensions** per answer — in the same single LLM call.
+
+```python
+result = quick_test(
+    endpoint=my_rag,
+    docs="docs/",
+    n=10,
+    detailed=True,  # ⭐ Enable multi-metric evaluation
+)
+
+# Inspect per-question metrics
+display(result.df[[
+    "question", "score", "correctness", "completeness",
+    "relevance", "conciseness", "hallucination_risk"
+]])
+
+# Radar chart + 4-panel visualization
+result.plot()
+```
+
+```
+==================================================
+✅ PASSED: 9/10 correct (90%)
+Average Score: 4.3/5.0
+Threshold: 70%
+──────────────────────────────────────────────────
+  Correctness: 4.5/5.0
+  Completeness: 4.2/5.0
+  Relevance: 4.8/5.0
+  Conciseness: 4.1/5.0
+  Hallucination Risk: 4.6/5.0
+==================================================
+```
+
+| Metric | What it measures | Scale |
+|--------|------------------|-------|
+| **Correctness** | Semantic match to golden answer | 5 = fully correct |
+| **Completeness** | Covers all key points | 5 = fully covered |
+| **Relevance** | Addresses the question asked | 5 = perfectly on-topic |
+| **Conciseness** | Focused, no filler | 5 = concise and precise |
+| **Hallucination Risk** | No fabricated claims | 5 = no hallucination |
+
+**CLI:**
+```bash
+ragscore evaluate http://localhost:8000/query --detailed
+```
+
+> 📓 [Full demo notebook](examples/detailed_evaluation_demo.ipynb) — build a mini RAG and test it with detailed metrics.
 
 ---
 
@@ -257,6 +310,7 @@ ragscore evaluate http://api/query --output results.json
 |---------|-------------|
 | `ragscore generate <paths>` | Generate QA pairs from documents |
 | `ragscore evaluate <endpoint>` | Evaluate RAG against golden QAs |
+| `ragscore evaluate <endpoint> --detailed` | Multi-metric evaluation |
 | `ragscore --help` | Show all commands and options |
 | `ragscore generate --help` | Show generate options |
 | `ragscore evaluate --help` | Show evaluate options |
