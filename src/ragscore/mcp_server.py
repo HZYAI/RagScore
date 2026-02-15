@@ -36,6 +36,27 @@ except ImportError:
     FastMCP = None
 
 
+def _detect_provider_info(provider: str = None, model: str = None) -> str:
+    """Return a short string describing which provider/model will be used."""
+    from .providers import get_provider
+
+    try:
+        p = get_provider(provider=provider, model=model)
+        key_env = None
+        from .providers.factory import PROVIDER_ENV_KEYS
+
+        key_env = PROVIDER_ENV_KEYS.get(p.provider_name)
+        if key_env:
+            import os
+
+            masked = os.getenv(key_env, "")
+            masked = f"{masked[:4]}...{masked[-4:]}" if len(masked) > 8 else "***"
+            return f"🔑 Using: {p.provider_name} ({p.model}) [key: {key_env}={masked}]"
+        return f"🔑 Using: {p.provider_name} ({p.model}) [no API key needed]"
+    except Exception as e:
+        return f"⚠️ No provider detected: {e}"
+
+
 def create_mcp_server():
     """Create and configure the MCP server."""
     if not MCP_AVAILABLE:
@@ -68,23 +89,57 @@ def create_mcp_server():
             Summary of generation results and path to output file
         """
         from . import config
-        from .pipeline import run_pipeline
+        from .data_processing import chunk_text, initialize_nltk
+        from .pipeline import _async_generate_qas, _read_from_paths
+        from .providers import get_provider
 
         # Suppress stdout for MCP (it uses stdout for communication)
         old_stdout = sys.stdout
         sys.stdout = sys.stderr
 
         try:
-            run_pipeline(paths=[path], concurrency=concurrency, provider=provider, model=model)
-            output_path = str(config.GENERATED_QAS_PATH)
+            config.ensure_dirs()
+            initialize_nltk()
 
-            # Count generated QAs
-            count = 0
-            if Path(output_path).exists():
-                with open(output_path) as f:
-                    count = sum(1 for _ in f)
+            docs = _read_from_paths([path])
+            if not docs:
+                return "❌ No documents found."
 
-            return f"✅ Generated {count} QA pairs. Saved to: {output_path}"
+            all_chunks = []
+            for doc in docs:
+                chunks = chunk_text(doc["text"])
+                for chunk_text_content in chunks:
+                    if len(chunk_text_content.split()) >= 40:
+                        all_chunks.append(
+                            {
+                                "doc_id": doc["doc_id"],
+                                "path": doc["path"],
+                                "text": chunk_text_content,
+                                "chunk_id": len(all_chunks),
+                            }
+                        )
+
+            if not all_chunks:
+                return "❌ No valid chunks found (all too short)."
+
+            llm_provider = get_provider(provider=provider, model=model)
+            provider_info = _detect_provider_info(provider=provider, model=model)
+            if llm_provider.provider_name == "ollama" and concurrency > 2:
+                concurrency = 2
+
+            all_qas = await _async_generate_qas(
+                all_chunks, concurrency=concurrency, provider=llm_provider
+            )
+
+            if not all_qas:
+                return f"{provider_info}\n❌ No QA pairs were generated."
+
+            output_file = str(config.GENERATED_QAS_PATH)
+            with open(output_file, "w", encoding="utf-8") as f:
+                for qa in all_qas:
+                    f.write(json.dumps(qa, ensure_ascii=False) + "\n")
+
+            return f"{provider_info}\n✅ Generated {len(all_qas)} QA pairs. Saved to: {output_file}"
         except Exception as e:
             return f"❌ Error: {e}"
         finally:
@@ -117,7 +172,9 @@ def create_mcp_server():
             Evaluation summary with accuracy and incorrect pairs
         """
         from . import config
-        from .evaluation import run_evaluation
+        from .evaluation import RAGClient, load_golden_qas
+        from .evaluation import evaluate_rag as _evaluate_rag
+        from .providers import get_provider
 
         if dataset_path is None:
             dataset_path = str(config.GENERATED_QAS_PATH)
@@ -127,16 +184,22 @@ def create_mcp_server():
         sys.stdout = sys.stderr
 
         try:
-            summary = run_evaluation(
-                golden_path=dataset_path,
-                endpoint=endpoint,
+            golden_qas = load_golden_qas(dataset_path)
+            rag_client = RAGClient(endpoint=endpoint)
+            llm_provider = get_provider(provider=provider, model=model)
+            provider_info = _detect_provider_info(provider=provider, model=model)
+
+            summary = await _evaluate_rag(
+                golden_qas=golden_qas,
+                rag_client=rag_client,
+                provider=llm_provider,
                 concurrency=concurrency,
-                provider=provider,
-                model=model,
                 detailed=detailed,
             )
 
-            result = f"""📊 RAG Evaluation Results:
+            result = f"""{provider_info}
+
+📊 RAG Evaluation Results:
 - Accuracy: {summary.accuracy:.1%} ({summary.correct}/{summary.total} correct)
 - Average Score: {summary.avg_score:.1f}/5.0
 
@@ -205,20 +268,26 @@ def create_mcp_server():
             Test results with pass/fail status and details
         """
         from . import config
-        from .quick_test import quick_test
+        from .providers import get_provider
+        from .quick_test import _quick_test_async
 
         # Suppress stdout for MCP
         old_stdout = sys.stdout
         sys.stdout = sys.stderr
 
         try:
-            result = quick_test(
+            qt_provider = get_provider(model=model) if model else None
+            provider_info = _detect_provider_info(model=model)
+
+            result = await _quick_test_async(
                 endpoint=endpoint,
                 docs=docs_path,
                 n=num_questions,
                 threshold=threshold,
+                concurrency=5,
                 silent=True,
-                model=model,
+                provider=qt_provider,
+                judge_provider=qt_provider,
                 detailed=detailed,
             )
 
@@ -230,7 +299,9 @@ def create_mcp_server():
                         f.write(json.dumps(c, ensure_ascii=False) + "\n")
 
             status = "✅ PASSED" if result.passed else "❌ FAILED"
-            output = f"""{status}
+            output = f"""{provider_info}
+
+{status}
 
 📊 Quick Test Results:
 - Accuracy: {result.accuracy:.0%} ({result.correct}/{result.total} correct)
@@ -331,6 +402,9 @@ def run_server():
         print("Error: MCP not installed. Install with: pip install mcp", file=sys.stderr)
         print("Or: pip install ragscore[mcp]", file=sys.stderr)
         sys.exit(1)
+
+    print("RAGScore MCP Server starting...", file=sys.stderr)
+    print(_detect_provider_info(), file=sys.stderr)
 
     mcp = create_mcp_server()
     mcp.run()
