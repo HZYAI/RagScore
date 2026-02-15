@@ -147,7 +147,8 @@ class QuickTestResult:
 
         # Panel 3 (detailed only): Radar Chart of Metrics
         if has_detailed:
-            ax_radar = axes[2]
+            axes[2].remove()
+            ax_radar = fig.add_subplot(1, n_panels, 3, polar=True)
             metrics = _DETAILED_METRICS
             labels = [m.replace("_", " ").title() for m in metrics]
             avgs = []
@@ -162,7 +163,6 @@ class QuickTestResult:
 
             ax_radar.set_theta_offset(np.pi / 2)
             ax_radar.set_theta_direction(-1)
-            ax_radar = fig.add_subplot(1, n_panels, 3, polar=True)
             ax_radar.plot(angles, avgs_plot, "o-", linewidth=2, color="#2196F3")
             ax_radar.fill(angles, avgs_plot, alpha=0.25, color="#2196F3")
             ax_radar.set_xticks(angles[:-1])
