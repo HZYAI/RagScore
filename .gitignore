@@ -92,6 +92,7 @@ Desktop.ini
 *.pem
 *.key
 secrets/
+.mcpregistry_*
 
 # Deployment
 *.pid
