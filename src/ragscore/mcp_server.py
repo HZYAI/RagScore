@@ -97,6 +97,7 @@ def create_mcp_server():
         concurrency: int = 5,
         provider: Optional[str] = None,
         model: Optional[str] = None,
+        detailed: bool = False,
     ) -> str:
         """
         Evaluate a RAG API endpoint against a QA dataset.
@@ -110,6 +111,7 @@ def create_mcp_server():
             concurrency: Max concurrent requests (default: 5)
             provider: LLM provider for judging (openai, anthropic, ollama). Auto-detected if not set.
             model: LLM model for judging (e.g. gpt-4o-mini). Uses provider default if not set.
+            detailed: Enable multi-metric evaluation (correctness, completeness, relevance, conciseness, hallucination_risk). Default: False.
 
         Returns:
             Evaluation summary with accuracy and incorrect pairs
@@ -131,6 +133,7 @@ def create_mcp_server():
                 concurrency=concurrency,
                 provider=provider,
                 model=model,
+                detailed=detailed,
             )
 
             result = f"""📊 RAG Evaluation Results:
@@ -138,6 +141,26 @@ def create_mcp_server():
 - Average Score: {summary.avg_score:.1f}/5.0
 
 """
+            if detailed and summary.results:
+                metrics = [
+                    "correctness",
+                    "completeness",
+                    "relevance",
+                    "conciseness",
+                    "hallucination_risk",
+                ]
+                for metric in metrics:
+                    vals = [
+                        getattr(r, metric)
+                        for r in summary.results
+                        if getattr(r, metric, None) is not None
+                    ]
+                    if vals:
+                        avg = sum(vals) / len(vals)
+                        label = metric.replace("_", " ").title()
+                        result += f"- {label}: {avg:.1f}/5.0\n"
+                result += "\n"
+
             if summary.incorrect > 0:
                 result += f"❌ {summary.incorrect} incorrect answers found.\n"
                 # Show first 3 failures
@@ -162,6 +185,7 @@ def create_mcp_server():
         threshold: float = 0.7,
         provider: Optional[str] = None,
         model: Optional[str] = None,
+        detailed: bool = False,
     ) -> str:
         """
         Quick RAG accuracy test - generate QAs and evaluate in one call.
@@ -175,6 +199,7 @@ def create_mcp_server():
             threshold: Pass/fail accuracy threshold (default: 0.7 = 70%)
             provider: LLM provider (openai, anthropic, ollama). Auto-detected if not set.
             model: LLM model name. Uses provider default if not set.
+            detailed: Enable multi-metric evaluation (correctness, completeness, relevance, conciseness, hallucination_risk). Default: False.
 
         Returns:
             Test results with pass/fail status and details
@@ -194,6 +219,7 @@ def create_mcp_server():
                 threshold=threshold,
                 silent=True,
                 model=model,
+                detailed=detailed,
             )
 
             # Save corrections so get_corrections() can retrieve them
@@ -212,6 +238,22 @@ def create_mcp_server():
 - Threshold: {threshold:.0%}
 
 """
+            if detailed and result.details:
+                metrics = [
+                    "correctness",
+                    "completeness",
+                    "relevance",
+                    "conciseness",
+                    "hallucination_risk",
+                ]
+                for metric in metrics:
+                    vals = [d.get(metric) for d in result.details if d.get(metric) is not None]
+                    if vals:
+                        avg = sum(vals) / len(vals)
+                        label = metric.replace("_", " ").title()
+                        output += f"- {label}: {avg:.1f}/5.0\n"
+                output += "\n"
+
             if result.corrections:
                 output += f"🔧 {len(result.corrections)} corrections available.\n"
                 output += "Use get_corrections() to retrieve them.\n"

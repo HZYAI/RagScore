@@ -233,6 +233,11 @@ def evaluate(
     provider: Optional[str] = typer.Option(
         None, "--provider", "-p", help="LLM provider for judging (openai, ollama, anthropic, etc.)"
     ),
+    detailed: bool = typer.Option(
+        False,
+        "--detailed",
+        help="Enable multi-metric evaluation (correctness, completeness, relevance, conciseness, hallucination)",
+    ),
 ):
     """
     Evaluate your RAG system against golden QA pairs.
@@ -266,6 +271,7 @@ def evaluate(
             method=method,
             model=model,
             provider=provider,
+            detailed=detailed,
         )
     except FileNotFoundError as e:
         typer.secho(f"\n❌ File not found: {e}", fg=typer.colors.RED)

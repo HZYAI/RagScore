@@ -17,6 +17,15 @@ from .llm import detect_language, safe_json_parse
 from .ui import get_async_pbar, patch_asyncio
 
 
+_DETAILED_METRICS = [
+    "correctness",
+    "completeness",
+    "relevance",
+    "conciseness",
+    "hallucination_risk",
+]
+
+
 @dataclass
 class EvaluationResult:
     """Result of evaluating a single QA pair."""
@@ -28,9 +37,14 @@ class EvaluationResult:
     score: int  # 1-5
     reason: str
     is_correct: bool  # score >= 4
+    correctness: Optional[int] = None
+    completeness: Optional[int] = None
+    relevance: Optional[int] = None
+    conciseness: Optional[int] = None
+    hallucination_risk: Optional[int] = None
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        d = {
             "id": self.id,
             "question": self.question,
             "golden_answer": self.golden_answer,
@@ -39,6 +53,11 @@ class EvaluationResult:
             "reason": self.reason,
             "is_correct": self.is_correct,
         }
+        for metric in _DETAILED_METRICS:
+            val = getattr(self, metric, None)
+            if val is not None:
+                d[metric] = val
+        return d
 
 
 @dataclass
@@ -140,8 +159,13 @@ class RAGClient:
             raise RAGScoreError(f"Failed to query RAG endpoint: {e}") from e
 
 
-def _build_judge_prompt(question: str, golden_answer: str, rag_answer: str, lang: str) -> str:
+def _build_judge_prompt(
+    question: str, golden_answer: str, rag_answer: str, lang: str, detailed: bool = False
+) -> str:
     """Build the LLM-as-judge prompt."""
+    if detailed:
+        return _build_detailed_judge_prompt(question, golden_answer, rag_answer, lang)
+
     if lang == "zh":
         return f"""比较RAG系统的回答与标准答案。
 
@@ -174,11 +198,69 @@ Score 1-5:
 Output JSON: {{"score": N, "reason": "brief explanation"}}"""
 
 
+def _build_detailed_judge_prompt(
+    question: str, golden_answer: str, rag_answer: str, lang: str
+) -> str:
+    """Build the detailed multi-metric LLM-as-judge prompt."""
+    if lang == "zh":
+        return f"""你是一个公正的评审，对RAG系统的回答进行多维度评估。
+
+问题: {question}
+标准答案: {golden_answer}
+RAG回答: {rag_answer}
+
+请从以下5个维度评分 (每项1-5分):
+
+1. correctness (正确性): 回答与标准答案的语义一致程度
+   5=完全正确 4=基本正确 3=部分正确 2=大部分错误 1=完全错误
+
+2. completeness (完整性): 回答是否涵盖了标准答案中的所有关键信息
+   5=完全覆盖 4=轻微遗漏 3=遗漏部分要点 2=遗漏大量信息 1=几乎未覆盖
+
+3. relevance (相关性): 回答是否针对所提问题
+   5=完全切题 4=基本切题 3=部分偏题 2=大部分偏题 1=完全无关
+
+4. conciseness (简洁性): 回答是否简洁，没有多余或无关的信息
+   5=简洁精准 4=略有冗余 3=有明显冗余 2=大量无关内容 1=完全冗余
+
+5. hallucination_risk (幻觉风险): 回答中是否包含标准答案中没有的虚假信息
+   5=无幻觉 4=极少可疑内容 3=有一些不确定内容 2=有明显虚假信息 1=大量虚假信息
+
+请输出JSON格式:
+{{"score": 综合分数, "reason": "简短解释", "correctness": 分数, "completeness": 分数, "relevance": 分数, "conciseness": 分数, "hallucination_risk": 分数}}"""
+    else:
+        return f"""You are an impartial judge evaluating a RAG system answer across multiple dimensions.
+
+Question: {question}
+Golden Answer: {golden_answer}
+RAG Answer: {rag_answer}
+
+Score each dimension 1-5:
+
+1. correctness: How semantically close is the answer to the golden answer?
+   5=Fully correct  4=Mostly correct  3=Partially correct  2=Mostly wrong  1=Completely wrong
+
+2. completeness: Does the answer cover all key points from the golden answer?
+   5=Fully covered  4=Minor omissions  3=Some key points missing  2=Major gaps  1=Almost nothing covered
+
+3. relevance: Does the answer actually address the question asked?
+   5=Perfectly on-topic  4=Mostly on-topic  3=Partially off-topic  2=Mostly off-topic  1=Completely irrelevant
+
+4. conciseness: Is the answer focused without unnecessary or irrelevant information?
+   5=Concise and precise  4=Slightly verbose  3=Noticeably verbose  2=Mostly filler  1=Entirely off-track
+
+5. hallucination_risk: Does the answer contain claims NOT supported by the golden answer?
+   5=No hallucination  4=Minimal risk  3=Some unsupported claims  2=Significant fabrication  1=Mostly fabricated
+
+Output JSON: {{"score": N, "reason": "brief explanation", "correctness": N, "completeness": N, "relevance": N, "conciseness": N, "hallucination_risk": N}}"""
+
+
 async def _judge_single(
     qa: dict[str, Any],
     rag_answer: str,
     provider,
     semaphore: asyncio.Semaphore,
+    detailed: bool = False,
 ) -> EvaluationResult:
     """Judge a single QA pair."""
     question = qa.get("question", "")
@@ -189,7 +271,7 @@ async def _judge_single(
     lang = detect_language(question)
 
     # Build judge prompt
-    user_prompt = _build_judge_prompt(question, golden_answer, rag_answer, lang)
+    user_prompt = _build_judge_prompt(question, golden_answer, rag_answer, lang, detailed=detailed)
 
     system_prompt = (
         "You are an impartial judge evaluating RAG system answers. "
@@ -211,9 +293,18 @@ async def _judge_single(
             # Default to low score on error
             score = 1
             reason = f"Evaluation error: {e}"
+            data = {}
 
     # Clamp score to valid range
     score = max(1, min(5, score))
+
+    # Extract detailed metrics
+    metric_kwargs = {}
+    if detailed:
+        for metric in _DETAILED_METRICS:
+            val = data.get(metric)
+            if val is not None:
+                metric_kwargs[metric] = max(1, min(5, int(val)))
 
     return EvaluationResult(
         id=qa_id,
@@ -223,6 +314,7 @@ async def _judge_single(
         score=score,
         reason=reason,
         is_correct=(score >= 4),
+        **metric_kwargs,
     )
 
 
@@ -232,6 +324,7 @@ async def evaluate_rag(
     provider=None,
     concurrency: int = 5,
     correct_threshold: int = 4,
+    detailed: bool = False,
 ) -> EvaluationSummary:
     """
     Evaluate RAG system against golden QA pairs.
@@ -242,6 +335,7 @@ async def evaluate_rag(
         provider: LLM provider for judging (auto-detected if None)
         concurrency: Max concurrent requests (default: 5)
         correct_threshold: Score threshold for "correct" (default: 4)
+        detailed: Enable multi-metric evaluation (default: False)
 
     Returns:
         EvaluationSummary with results and incorrect pairs
@@ -267,7 +361,7 @@ async def evaluate_rag(
                     rag_answer = f"[ERROR: {e}]"
 
             # Immediately judge the answer
-            return await _judge_single(qa, rag_answer, provider, semaphore)
+            return await _judge_single(qa, rag_answer, provider, semaphore, detailed=detailed)
 
         tasks = [process_qa(qa) for qa in golden_qas]
         async_pbar = get_async_pbar()
@@ -333,6 +427,7 @@ def run_evaluation(
     headers: Optional[dict[str, str]] = None,
     model: Optional[str] = None,
     provider: Optional[str] = None,
+    detailed: bool = False,
 ) -> EvaluationSummary:
     """
     Run RAG evaluation pipeline (synchronous wrapper).
@@ -348,6 +443,7 @@ def run_evaluation(
         headers: Optional HTTP headers for RAG endpoint
         model: LLM model for judging (auto-detected if None)
         provider: LLM provider for judging (e.g., 'ollama', 'openai'). Auto-detected if None.
+        detailed: Enable multi-metric evaluation (default: False)
 
     Returns:
         EvaluationSummary with results
@@ -385,6 +481,7 @@ def run_evaluation(
             rag_client=rag_client,
             provider=llm_provider,
             concurrency=concurrency,
+            detailed=detailed,
         )
     )
 
@@ -401,6 +498,19 @@ def run_evaluation(
 
     print(f"{status}: {summary.correct}/{summary.total} correct ({summary.accuracy * 100:.1f}%)")
     print(f"Average Score: {summary.avg_score:.2f}/5.0")
+
+    if detailed and summary.results:
+        separator = "\u2500" * 60
+        print(separator)
+        for metric in _DETAILED_METRICS:
+            vals = [
+                getattr(r, metric) for r in summary.results if getattr(r, metric, None) is not None
+            ]
+            if vals:
+                avg = sum(vals) / len(vals)
+                label = metric.replace("_", " ").title()
+                print(f"  {label}: {avg:.2f}/5.0")
+
     print(f"{'=' * 60}")
 
     # Print incorrect pairs

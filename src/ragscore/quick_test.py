@@ -33,6 +33,14 @@ from .exceptions import RAGScoreError
 from .llm import agenerate_qa_for_chunk, detect_language, safe_json_parse
 from .ui import get_async_pbar, patch_asyncio
 
+_DETAILED_METRICS = [
+    "correctness",
+    "completeness",
+    "relevance",
+    "conciseness",
+    "hallucination_risk",
+]
+
 
 @dataclass
 class QuickTestResult:
@@ -84,24 +92,30 @@ class QuickTestResult:
                 "pandas is required for .df property. Install with: pip install pandas"
             ) from e
 
-    def plot(self, figsize: tuple = (12, 4)):
+    def plot(self, figsize: tuple = None):
         """
-        Generate a 3-panel visualization of the test results.
+        Generate a visualization of the test results.
 
-        Panel 1: Pass/Fail pie chart (Is it good?)
-        Panel 2: Score distribution histogram (How good?)
-        Panel 3: Corrections count (What to fix?)
+        Default (3-panel): Pass/Fail pie, Score histogram, Corrections count.
+        Detailed (4-panel): Adds a radar chart of multi-metric averages.
 
         Args:
-            figsize: Figure size tuple (width, height)
+            figsize: Figure size tuple (width, height). Auto-sized if None.
         """
         try:
             import matplotlib.pyplot as plt
+            import numpy as np
         except ImportError:
             print("⚠️ Plotting requires matplotlib. Install with: pip install matplotlib")
             return
 
-        fig, axes = plt.subplots(1, 3, figsize=figsize)
+        # Check if detailed metrics are available
+        has_detailed = self.details and any(d.get("correctness") is not None for d in self.details)
+        n_panels = 4 if has_detailed else 3
+        if figsize is None:
+            figsize = (16, 4) if has_detailed else (12, 4)
+
+        fig, axes = plt.subplots(1, n_panels, figsize=figsize)
 
         # Panel 1: Pass/Fail Pie Chart
         if self.correct > 0 or self.total - self.correct > 0:
@@ -131,11 +145,39 @@ class QuickTestResult:
             axes[1].set_xticks([1, 2, 3, 4, 5])
         axes[1].set_title(f"Score Distribution\n(avg: {self.avg_score:.1f}/5.0)")
 
-        # Panel 3: Corrections Summary
-        axes[2].axis("off")
+        # Panel 3 (detailed only): Radar Chart of Metrics
+        if has_detailed:
+            ax_radar = axes[2]
+            metrics = _DETAILED_METRICS
+            labels = [m.replace("_", " ").title() for m in metrics]
+            avgs = []
+            for m in metrics:
+                vals = [d.get(m) for d in self.details if d.get(m) is not None]
+                avgs.append(sum(vals) / len(vals) if vals else 0)
+
+            # Radar chart
+            angles = np.linspace(0, 2 * np.pi, len(metrics), endpoint=False).tolist()
+            avgs_plot = avgs + [avgs[0]]
+            angles += [angles[0]]
+
+            ax_radar.set_theta_offset(np.pi / 2)
+            ax_radar.set_theta_direction(-1)
+            ax_radar = fig.add_subplot(1, n_panels, 3, polar=True)
+            ax_radar.plot(angles, avgs_plot, "o-", linewidth=2, color="#2196F3")
+            ax_radar.fill(angles, avgs_plot, alpha=0.25, color="#2196F3")
+            ax_radar.set_xticks(angles[:-1])
+            ax_radar.set_xticklabels(labels, size=8)
+            ax_radar.set_ylim(0, 5)
+            ax_radar.set_yticks([1, 2, 3, 4, 5])
+            ax_radar.set_yticklabels(["1", "2", "3", "4", "5"], size=7)
+            ax_radar.set_title("Detailed Metrics", pad=20)
+
+        # Last Panel: Corrections Summary
+        ax_corr = axes[-1]
+        ax_corr.axis("off")
         n_corrections = len(self.corrections)
         if n_corrections > 0:
-            axes[2].text(
+            ax_corr.text(
                 0.5,
                 0.6,
                 f"{n_corrections}",
@@ -145,12 +187,12 @@ class QuickTestResult:
                 fontweight="bold",
                 color="#f44336",
             )
-            axes[2].text(
+            ax_corr.text(
                 0.5, 0.3, "corrections needed", ha="center", va="center", fontsize=14, color="#666"
             )
         else:
-            axes[2].text(0.5, 0.5, "✓", ha="center", va="center", fontsize=64, color="#4CAF50")
-            axes[2].text(
+            ax_corr.text(0.5, 0.5, "✓", ha="center", va="center", fontsize=64, color="#4CAF50")
+            ax_corr.text(
                 0.5,
                 0.2,
                 "No corrections needed",
@@ -159,7 +201,7 @@ class QuickTestResult:
                 fontsize=12,
                 color="#666",
             )
-        axes[2].set_title("Items to Fix")
+        ax_corr.set_title("Items to Fix")
 
         plt.tight_layout()
         plt.show()
@@ -226,8 +268,13 @@ def _read_docs_for_quicktest(docs: Union[str, list[str], Path]) -> list[dict]:
     return all_docs
 
 
-def _build_judge_prompt(question: str, golden_answer: str, rag_answer: str, lang: str) -> str:
+def _build_judge_prompt(
+    question: str, golden_answer: str, rag_answer: str, lang: str, detailed: bool = False
+) -> str:
     """Build the LLM-as-judge prompt."""
+    if detailed:
+        return _build_detailed_judge_prompt(question, golden_answer, rag_answer, lang)
+
     if lang == "zh":
         return f"""比较RAG系统的回答与标准答案。
 
@@ -260,6 +307,63 @@ Score 1-5:
 Output JSON: {{"score": N, "reason": "brief explanation"}}"""
 
 
+def _build_detailed_judge_prompt(
+    question: str, golden_answer: str, rag_answer: str, lang: str
+) -> str:
+    """Build the detailed multi-metric LLM-as-judge prompt."""
+    if lang == "zh":
+        return f"""你是一个公正的评审，对RAG系统的回答进行多维度评估。
+
+问题: {question}
+标准答案: {golden_answer}
+RAG回答: {rag_answer}
+
+请从以下5个维度评分 (每项1-5分):
+
+1. correctness (正确性): 回答与标准答案的语义一致程度
+   5=完全正确 4=基本正确 3=部分正确 2=大部分错误 1=完全错误
+
+2. completeness (完整性): 回答是否涵盖了标准答案中的所有关键信息
+   5=完全覆盖 4=轻微遗漏 3=遗漏部分要点 2=遗漏大量信息 1=几乎未覆盖
+
+3. relevance (相关性): 回答是否针对所提问题
+   5=完全切题 4=基本切题 3=部分偏题 2=大部分偏题 1=完全无关
+
+4. conciseness (简洁性): 回答是否简洁，没有多余或无关的信息
+   5=简洁精准 4=略有冗余 3=有明显冗余 2=大量无关内容 1=完全冗余
+
+5. hallucination_risk (幻觉风险): 回答中是否包含标准答案中没有的虚假信息
+   5=无幻觉 4=极少可疑内容 3=有一些不确定内容 2=有明显虚假信息 1=大量虚假信息
+
+请输出JSON格式:
+{{"score": 综合分数, "reason": "简短解释", "correctness": 分数, "completeness": 分数, "relevance": 分数, "conciseness": 分数, "hallucination_risk": 分数}}"""
+    else:
+        return f"""You are an impartial judge evaluating a RAG system answer across multiple dimensions.
+
+Question: {question}
+Golden Answer: {golden_answer}
+RAG Answer: {rag_answer}
+
+Score each dimension 1-5:
+
+1. correctness: How semantically close is the answer to the golden answer?
+   5=Fully correct  4=Mostly correct  3=Partially correct  2=Mostly wrong  1=Completely wrong
+
+2. completeness: Does the answer cover all key points from the golden answer?
+   5=Fully covered  4=Minor omissions  3=Some key points missing  2=Major gaps  1=Almost nothing covered
+
+3. relevance: Does the answer actually address the question asked?
+   5=Perfectly on-topic  4=Mostly on-topic  3=Partially off-topic  2=Mostly off-topic  1=Completely irrelevant
+
+4. conciseness: Is the answer focused without unnecessary or irrelevant information?
+   5=Concise and precise  4=Slightly verbose  3=Noticeably verbose  2=Mostly filler  1=Entirely off-track
+
+5. hallucination_risk: Does the answer contain claims NOT supported by the golden answer?
+   5=No hallucination  4=Minimal risk  3=Some unsupported claims  2=Significant fabrication  1=Mostly fabricated
+
+Output JSON: {{"score": N, "reason": "brief explanation", "correctness": N, "completeness": N, "relevance": N, "conciseness": N, "hallucination_risk": N}}"""
+
+
 async def _quick_test_async(
     endpoint: Union[str, Callable],
     docs: Union[str, list[str], Path],
@@ -269,6 +373,7 @@ async def _quick_test_async(
     silent: bool = False,
     provider=None,
     judge_provider=None,
+    detailed: bool = False,
 ) -> QuickTestResult:
     """Async implementation of quick_test."""
     import aiohttp
@@ -366,7 +471,9 @@ async def _quick_test_async(
 
                 # 3. Judge the answer
                 lang = detect_language(question)
-                judge_prompt = _build_judge_prompt(question, golden_answer, rag_answer, lang)
+                judge_prompt = _build_judge_prompt(
+                    question, golden_answer, rag_answer, lang, detailed=detailed
+                )
 
                 messages = [
                     {
@@ -386,6 +493,7 @@ async def _quick_test_async(
                 except Exception as e:
                     score = 1
                     reason = f"Judge error: {e}"
+                    data = {}
 
                 is_correct = score >= 4
 
@@ -398,6 +506,15 @@ async def _quick_test_async(
                     "is_correct": is_correct,
                     "source": chunk["path"],
                 }
+
+                # Add detailed metrics if available
+                if detailed:
+                    for metric in _DETAILED_METRICS:
+                        val = data.get(metric)
+                        if val is not None:
+                            result[metric] = max(1, min(5, int(val)))
+                        else:
+                            result[metric] = None
 
                 # Track corrections for incorrect answers
                 if not is_correct:
@@ -470,6 +587,7 @@ def quick_test(
     silent: bool = False,
     model: Optional[str] = None,
     judge_model: Optional[str] = None,
+    detailed: bool = False,
 ) -> QuickTestResult:
     """
     Quick RAG accuracy test - generate QAs and evaluate in one call.
@@ -486,12 +604,14 @@ def quick_test(
         silent: Suppress progress output (default: False)
         model: LLM model for QA generation (auto-detected if None)
         judge_model: LLM model for judging (uses model if None)
+        detailed: Enable multi-metric evaluation (correctness, completeness,
+                  relevance, conciseness, hallucination_risk) (default: False)
 
     Returns:
         QuickTestResult - Rich Object with:
             - .accuracy, .total, .correct, .passed - metrics
             - .df - pandas DataFrame of all results
-            - .plot() - 3-panel visualization
+            - .plot() - 3-panel visualization (5-panel when detailed=True)
             - .corrections - list of items to fix
 
     Examples:
@@ -499,12 +619,9 @@ def quick_test(
         result = quick_test("http://localhost:8000/query", docs="docs/")
         print(f"Accuracy: {result.accuracy:.0%}")
 
-        # Access DataFrame
-        result.df.head()
-        bad_rows = result.df[result.df['score'] < 3]
-
-        # Visualize results
-        result.plot()
+        # Detailed multi-metric evaluation
+        result = quick_test(endpoint, docs="docs/", detailed=True)
+        result.df[["question", "correctness", "completeness", "hallucination_risk"]]
 
         # With a function (no server needed)
         def my_rag(question):
@@ -542,6 +659,7 @@ def quick_test(
             silent=silent,
             provider=provider,
             judge_provider=judge_provider,
+            detailed=detailed,
         )
     )
 
@@ -552,6 +670,17 @@ def quick_test(
         print(f"{status}: {result.correct}/{result.total} correct ({result.accuracy:.0%})")
         print(f"Average Score: {result.avg_score:.1f}/5.0")
         print(f"Threshold: {threshold:.0%}")
+
+        if detailed and result.details:
+            separator = "─" * 50
+            print(separator)
+            for metric in _DETAILED_METRICS:
+                vals = [d.get(metric) for d in result.details if d.get(metric) is not None]
+                if vals:
+                    avg = sum(vals) / len(vals)
+                    label = metric.replace("_", " ").title()
+                    print(f"  {label}: {avg:.1f}/5.0")
+
         print(f"{'=' * 50}")
 
         if result.corrections:
