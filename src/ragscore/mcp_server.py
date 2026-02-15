@@ -111,7 +111,7 @@ def create_mcp_server():
             concurrency: Max concurrent requests (default: 5)
             provider: LLM provider for judging (openai, anthropic, ollama). Auto-detected if not set.
             model: LLM model for judging (e.g. gpt-4o-mini). Uses provider default if not set.
-            detailed: Enable multi-metric evaluation (correctness, completeness, relevance, conciseness, hallucination_risk). Default: False.
+            detailed: Enable multi-metric evaluation (correctness, completeness, relevance, conciseness, faithfulness). Default: False.
 
         Returns:
             Evaluation summary with accuracy and incorrect pairs
@@ -147,7 +147,7 @@ def create_mcp_server():
                     "completeness",
                     "relevance",
                     "conciseness",
-                    "hallucination_risk",
+                    "faithfulness",
                 ]
                 for metric in metrics:
                     vals = [
@@ -199,7 +199,7 @@ def create_mcp_server():
             threshold: Pass/fail accuracy threshold (default: 0.7 = 70%)
             provider: LLM provider (openai, anthropic, ollama). Auto-detected if not set.
             model: LLM model name. Uses provider default if not set.
-            detailed: Enable multi-metric evaluation (correctness, completeness, relevance, conciseness, hallucination_risk). Default: False.
+            detailed: Enable multi-metric evaluation (correctness, completeness, relevance, conciseness, faithfulness). Default: False.
 
         Returns:
             Test results with pass/fail status and details
@@ -244,7 +244,7 @@ def create_mcp_server():
                     "completeness",
                     "relevance",
                     "conciseness",
-                    "hallucination_risk",
+                    "faithfulness",
                 ]
                 for metric in metrics:
                     vals = [d.get(metric) for d in result.details if d.get(metric) is not None]

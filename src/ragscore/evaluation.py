@@ -22,7 +22,7 @@ _DETAILED_METRICS = [
     "completeness",
     "relevance",
     "conciseness",
-    "hallucination_risk",
+    "faithfulness",
 ]
 
 
@@ -41,7 +41,7 @@ class EvaluationResult:
     completeness: Optional[int] = None
     relevance: Optional[int] = None
     conciseness: Optional[int] = None
-    hallucination_risk: Optional[int] = None
+    faithfulness: Optional[int] = None
 
     def to_dict(self) -> dict[str, Any]:
         d = {
@@ -223,11 +223,11 @@ RAG回答: {rag_answer}
 4. conciseness (简洁性): 回答是否简洁，没有多余或无关的信息
    5=简洁精准 4=略有冗余 3=有明显冗余 2=大量无关内容 1=完全冗余
 
-5. hallucination_risk (幻觉风险): 回答中是否包含标准答案中没有的虚假信息
-   5=无幻觉 4=极少可疑内容 3=有一些不确定内容 2=有明显虚假信息 1=大量虚假信息
+5. faithfulness (忠实度): 回答是否忠实于标准答案中的信息，没有编造内容
+   5=完全忠实 4=基本忠实 3=有一些不确定内容 2=有明显编造信息 1=大量编造信息
 
 请输出JSON格式:
-{{"score": 综合分数, "reason": "简短解释", "correctness": 分数, "completeness": 分数, "relevance": 分数, "conciseness": 分数, "hallucination_risk": 分数}}"""
+{{"score": 综合分数, "reason": "简短解释", "correctness": 分数, "completeness": 分数, "relevance": 分数, "conciseness": 分数, "faithfulness": 分数}}"""
     else:
         return f"""You are an impartial judge evaluating a RAG system answer across multiple dimensions.
 
@@ -249,10 +249,10 @@ Score each dimension 1-5:
 4. conciseness: Is the answer focused without unnecessary or irrelevant information?
    5=Concise and precise  4=Slightly verbose  3=Noticeably verbose  2=Mostly filler  1=Entirely off-track
 
-5. hallucination_risk: Does the answer contain claims NOT supported by the golden answer?
-   5=No hallucination  4=Minimal risk  3=Some unsupported claims  2=Significant fabrication  1=Mostly fabricated
+5. faithfulness: Is the answer faithful to the golden answer without fabricating information?
+   5=Fully faithful  4=Mostly faithful  3=Some unsupported claims  2=Significant fabrication  1=Mostly fabricated
 
-Output JSON: {{"score": N, "reason": "brief explanation", "correctness": N, "completeness": N, "relevance": N, "conciseness": N, "hallucination_risk": N}}"""
+Output JSON: {{"score": N, "reason": "brief explanation", "correctness": N, "completeness": N, "relevance": N, "conciseness": N, "faithfulness": N}}"""
 
 
 async def _judge_single(

@@ -128,7 +128,7 @@ result = quick_test(
 # Inspect per-question metrics
 display(result.df[[
     "question", "score", "correctness", "completeness",
-    "relevance", "conciseness", "hallucination_risk"
+    "relevance", "conciseness", "faithfulness"
 ]])
 
 # Radar chart + 4-panel visualization
@@ -145,7 +145,7 @@ Threshold: 70%
   Completeness: 4.2/5.0
   Relevance: 4.8/5.0
   Conciseness: 4.1/5.0
-  Hallucination Risk: 4.6/5.0
+  Faithfulness: 4.6/5.0
 ==================================================
 ```
 
@@ -155,7 +155,7 @@ Threshold: 70%
 | **Completeness** | Covers all key points | 5 = fully covered |
 | **Relevance** | Addresses the question asked | 5 = perfectly on-topic |
 | **Conciseness** | Focused, no filler | 5 = concise and precise |
-| **Hallucination Risk** | No fabricated claims | 5 = no hallucination |
+| **Faithfulness** | No fabricated claims | 5 = fully faithful |
 
 **CLI:**
 ```bash

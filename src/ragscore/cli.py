@@ -236,7 +236,7 @@ def evaluate(
     detailed: bool = typer.Option(
         False,
         "--detailed",
-        help="Enable multi-metric evaluation (correctness, completeness, relevance, conciseness, hallucination)",
+        help="Enable multi-metric evaluation (correctness, completeness, relevance, conciseness, faithfulness)",
     ),
 ):
     """
