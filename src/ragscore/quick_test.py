@@ -687,6 +687,9 @@ def quick_test(
             print(f"\n❌ {len(result.corrections)} incorrect answers found.")
             print("Use result.df to inspect, result.plot() to visualize.")
 
+        print("\n⭐ Enjoying RAGScore? Star us: https://github.com/HZYAI/RagScore")
+        print("💬 Questions? Join discussions: https://github.com/HZYAI/RagScore/discussions")
+
     return result
 
 

@@ -535,4 +535,7 @@ def run_evaluation(
     elif incorrect:
         print("💡 Tip: Use --output results.json to save all incorrect pairs")
 
+    print("\n⭐ Enjoying RAGScore? Star us: https://github.com/HZYAI/RagScore")
+    print("💬 Questions? Join discussions: https://github.com/HZYAI/RagScore/discussions")
+
     return summary
