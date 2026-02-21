@@ -6,11 +6,11 @@
   [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
   [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
   [![Ollama](https://img.shields.io/badge/Ollama-Supported-orange)](https://ollama.ai)
-  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/HZYAI/RagScore/blob/main/examples/complete_demo.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/HZYAI/RagScore/blob/main/examples/detailed_evaluation_demo.ipynb)
   
   **2つのコマンドでQAデータセット生成とRAGシステム評価**
   
-  🔒 プライバシー優先 • ⚡ 非同期で高速 • 🤖 任意のLLM • 🏠 ローカルまたはクラウド
+  🔒 プライバシー優先 • ⚡ 非同期で高速 • 🤖 任意のLLM • 🏠 ローカルまたはクラウド • 🌍 多言語対応
   
   [English](README.md) | [中文](README_CN.md) | [日本語](README_JP.md)
 </div>

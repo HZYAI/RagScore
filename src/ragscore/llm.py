@@ -118,6 +118,7 @@ def _build_qa_prompts(chunk_text: str, difficulty: str, n: int, lang: str) -> tu
             "You are a careful dataset generator. "
             "Generate questions strictly answerable from the provided context. "
             "Focus on substantive concepts, facts, and technical details. "
+            "Generate questions and answers in the SAME language as the context. "
             "Return a JSON object with an 'items' array."
         )
 

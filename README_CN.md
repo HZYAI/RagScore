@@ -6,11 +6,11 @@
   [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
   [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
   [![Ollama](https://img.shields.io/badge/Ollama-Supported-orange)](https://ollama.ai)
-  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/HZYAI/RagScore/blob/main/examples/complete_demo.ipynb)
+  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/HZYAI/RagScore/blob/main/examples/detailed_evaluation_demo.ipynb)
   
   **两行命令生成问答数据集并评估 RAG 系统**
   
-  🔒 隐私优先 • ⚡ 异步快速 • 🤖 任意 LLM • 🏠 本地或云端
+  🔒 隐私优先 • ⚡ 异步快速 • 🤖 任意 LLM • 🏠 本地或云端 • 🌍 多语言支持
   
   [English](README.md) | [中文](README_CN.md) | [日本語](README_JP.md)
 </div>
