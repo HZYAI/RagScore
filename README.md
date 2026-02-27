@@ -74,6 +74,14 @@ result = quick_test(
     n=10,                                    # Number of test questions
 )
 
+# 1b. Tailored QA — target specific audiences
+result = quick_test(
+    endpoint="http://localhost:8000/query",
+    docs="docs/",
+    audience="developers",                   # Who asks the questions?
+    purpose="api-integration",               # What's the document for?
+)
+
 # 2. See the report
 result.plot()
 
@@ -99,6 +107,11 @@ export OPENAI_API_KEY="sk-..."
 # Generate from any document
 ragscore generate paper.pdf
 ragscore generate docs/*.pdf --concurrency 10
+
+# Tailored QA generation — target specific audiences
+ragscore generate docs/ --audience developers --purpose faq
+ragscore generate docs/ --audience customers --purpose "pre-sales"
+ragscore generate docs/ --audience "compliance auditors" --purpose "security audit"
 ```
 
 ### Evaluate Your RAG
@@ -163,6 +176,8 @@ ragscore evaluate http://localhost:8000/query --detailed
 ```
 
 > 📓 [Full demo notebook](examples/detailed_evaluation_demo.ipynb) — build a mini RAG and test it with detailed metrics.
+>
+> 🎯 [Audience & Purpose demo](examples/audience_purpose_demo.ipynb) — generate tailored QA for developers, customers, auditors, and more.
 
 ---
 
@@ -281,6 +296,13 @@ from ragscore import run_pipeline, run_evaluation
 # Generate QA pairs
 run_pipeline(paths=["docs/"], concurrency=10)
 
+# Generate tailored QA pairs for specific audiences
+run_pipeline(
+    paths=["docs/"],
+    audience="support engineers",
+    purpose="fine-tuning a support chatbot",
+)
+
 # Evaluate RAG
 results = run_evaluation(
     endpoint="http://localhost:8000/query",
@@ -309,6 +331,8 @@ ragscore evaluate http://api/query --output results.json
 | Command | Description |
 |---------|-------------|
 | `ragscore generate <paths>` | Generate QA pairs from documents |
+| `ragscore generate <paths> --audience <who>` | Tailored QA for specific audience |
+| `ragscore generate <paths> --purpose <why>` | Focus QA on document purpose |
 | `ragscore evaluate <endpoint>` | Evaluate RAG against golden QAs |
 | `ragscore evaluate <endpoint> --detailed` | Multi-metric evaluation |
 | `ragscore --help` | Show all commands and options |
