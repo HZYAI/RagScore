@@ -180,6 +180,36 @@ RAG回答: {rag_answer}
 - 1: 完全错误或无关
 
 请输出JSON格式: {{"score": 分数, "reason": "简短解释"}}"""
+    elif lang == "ja":
+        return f"""RAGシステムの回答を標準回答と比較してください。
+
+質問: {question}
+標準回答: {golden_answer}
+RAG回答: {rag_answer}
+
+採点基準 (1-5点):
+- 5: 完全に正確、意味的に同等
+- 4: ほぼ正確、軽微な省略あり
+- 3: 部分的に正確、いくつかの誤りあり
+- 2: ほとんど不正確、重大な誤りあり
+- 1: 完全に間違い、または無関係
+
+JSON形式で出力: {{"score": N, "reason": "簡潔な説明"}}"""
+    elif lang == "de":
+        return f"""Vergleichen Sie die RAG-Antwort mit der Referenzantwort.
+
+Frage: {question}
+Referenzantwort: {golden_answer}
+RAG-Antwort: {rag_answer}
+
+Bewertung 1-5:
+- 5: Vollständig korrekt, semantisch gleichwertig
+- 4: Größtenteils korrekt, kleine Auslassungen
+- 3: Teilweise korrekt, einige Fehler
+- 2: Größtenteils falsch, schwerwiegende Fehler
+- 1: Völlig falsch oder irrelevant
+
+JSON ausgeben: {{"score": N, "reason": "kurze Erklärung"}}"""
     else:
         return f"""Compare the RAG answer to the golden answer for this question.
 
@@ -227,6 +257,56 @@ RAG回答: {rag_answer}
 
 请输出JSON格式:
 {{"score": 综合分数, "reason": "简短解释", "correctness": 分数, "completeness": 分数, "relevance": 分数, "conciseness": 分数, "faithfulness": 分数}}"""
+    elif lang == "ja":
+        return f"""あなたはRAGシステムの回答を複数の観点から評価する公正な審査員です。
+
+質問: {question}
+標準回答: {golden_answer}
+RAG回答: {rag_answer}
+
+以下の5つの観点で採点してください（各1-5点）:
+
+1. correctness（正確性）: 回答が標準回答と意味的にどの程度一致しているか？
+   5=完全に正確 4=ほぼ正確 3=部分的に正確 2=ほとんど不正確 1=完全に不正確
+
+2. completeness（完全性）: 回答が標準回答の重要なポイントをすべてカバーしているか？
+   5=完全にカバー 4=軽微な省略 3=一部の重要点が欠落 2=大きな欠落 1=ほとんどカバーされていない
+
+3. relevance（関連性）: 回答が質問に対して適切に答えているか？
+   5=完全に適切 4=ほぼ適切 3=部分的に逸脱 2=ほとんど逸脱 1=完全に無関係
+
+4. conciseness（簡潔性）: 回答が不必要な情報なく簡潔であるか？
+   5=簡潔で正確 4=やや冗長 3=明らかに冗長 2=大部分が不要な内容 1=完全に的外れ
+
+5. faithfulness（忠実性）: 回答が情報を捏造せず標準回答に忠実であるか？
+   5=完全に忠実 4=ほぼ忠実 3=一部に根拠のない主張 2=かなりの捏造 1=ほとんど捏造
+
+JSON形式で出力: {{"score": N, "reason": "簡潔な説明", "correctness": N, "completeness": N, "relevance": N, "conciseness": N, "faithfulness": N}}"""
+    elif lang == "de":
+        return f"""Sie sind ein unparteiischer Richter, der die Antwort eines RAG-Systems in mehreren Dimensionen bewertet.
+
+Frage: {question}
+Referenzantwort: {golden_answer}
+RAG-Antwort: {rag_answer}
+
+Bewerten Sie jede Dimension 1-5:
+
+1. correctness (Korrektheit): Wie semantisch nah ist die Antwort an der Referenzantwort?
+   5=Vollständig korrekt 4=Größtenteils korrekt 3=Teilweise korrekt 2=Größtenteils falsch 1=Völlig falsch
+
+2. completeness (Vollständigkeit): Deckt die Antwort alle Kernpunkte der Referenzantwort ab?
+   5=Vollständig abgedeckt 4=Kleine Auslassungen 3=Einige Kernpunkte fehlen 2=Große Lücken 1=Fast nichts abgedeckt
+
+3. relevance (Relevanz): Beantwortet die Antwort tatsächlich die gestellte Frage?
+   5=Perfekt passend 4=Größtenteils passend 3=Teilweise abschweifend 2=Größtenteils abschweifend 1=Völlig irrelevant
+
+4. conciseness (Prägnanz): Ist die Antwort fokussiert ohne unnötige Informationen?
+   5=Prägnant und präzise 4=Leicht weitschweifig 3=Merklich weitschweifig 2=Größtenteils Fülltext 1=Völlig abschweifend
+
+5. faithfulness (Treue): Ist die Antwort der Referenzantwort treu ohne Informationen zu erfinden?
+   5=Vollständig treu 4=Größtenteils treu 3=Einige unbelegte Behauptungen 2=Erhebliche Erfindungen 1=Größtenteils erfunden
+
+JSON ausgeben: {{"score": N, "reason": "kurze Erklärung", "correctness": N, "completeness": N, "relevance": N, "conciseness": N, "faithfulness": N}}"""
     else:
         return f"""You are an impartial judge evaluating a RAG system answer across multiple dimensions.
 

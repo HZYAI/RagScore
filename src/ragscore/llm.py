@@ -76,14 +76,53 @@ def safe_json_parse(raw: str) -> dict[str, Any]:
 
 
 def detect_language(text: str) -> str:
-    """Detect if text is primarily Chinese or English."""
-    # Count Chinese characters (CJK Unified Ideographs)
-    chinese_chars = len([c for c in text if "\u4e00" <= c <= "\u9fff"])
+    """Detect text language: Chinese (zh), Japanese (ja), German (de), or English (en)."""
     total_chars = len([c for c in text if c.strip()])
+    if total_chars == 0:
+        return "en"
 
-    # If more than 30% are Chinese characters, consider it Chinese
-    if total_chars > 0 and (chinese_chars / total_chars) > 0.3:
+    # Count CJK characters (shared by Chinese and Japanese)
+    cjk_chars = len([c for c in text if "\u4e00" <= c <= "\u9fff"])
+
+    # Count Japanese-specific characters (Hiragana + Katakana)
+    ja_chars = len([c for c in text if "\u3040" <= c <= "\u309f" or "\u30a0" <= c <= "\u30ff"])
+
+    # Japanese: has Hiragana/Katakana (unique to Japanese)
+    if ja_chars > 0 and (ja_chars + cjk_chars) / total_chars > 0.15:
+        return "ja"
+
+    # Chinese: CJK characters without Japanese kana
+    if cjk_chars / total_chars > 0.3:
         return "zh"
+
+    # German: detect common German words and characters
+    lower_text = text.lower()
+    german_markers = [
+        " der ",
+        " die ",
+        " das ",
+        " und ",
+        " ist ",
+        " ein ",
+        " eine ",
+        " mit ",
+        " für ",
+        " auf ",
+        " von ",
+        " den ",
+        " dem ",
+        " wird ",
+        " sind ",
+        " nicht ",
+        "ä",
+        "ö",
+        "ü",
+        "ß",
+    ]
+    german_score = sum(1 for m in german_markers if m in lower_text)
+    if german_score >= 4:
+        return "de"
+
     return "en"
 
 
@@ -101,7 +140,7 @@ def _build_qa_prompts(
         chunk_text: The document chunk to generate QA from.
         difficulty: Question difficulty ('easy', 'medium', 'hard').
         n: Number of QA pairs to generate.
-        lang: Language code ('en', 'zh').
+        lang: Language code ('en', 'zh', 'ja', 'de').
         audience: Target audience (e.g. 'internal staff', 'customers', 'developers').
         purpose: Document purpose (e.g. 'training', 'compliance', 'product FAQ').
     """
@@ -141,6 +180,74 @@ def _build_qa_prompts(
 - 关注上下文中的核心概念、事实和技术细节。
 - 每个问题应测试对内容的真正理解，而不仅仅是表面细节。{intent_instructions_zh}
 - 输出JSON对象：{{"items": [{{"question": "...", "answer": "...", "rationale": "...", "support_span": "..."}}]}}。
+""".strip()
+    elif lang == "ja":
+        difficulty_map = {"easy": "簡単", "medium": "中級", "hard": "難問"}
+        diff_ja = difficulty_map.get(difficulty, difficulty)
+
+        intent_instructions_ja = ""
+        if audience or purpose:
+            intent_instructions_ja = "\n"
+            if audience:
+                intent_instructions_ja += (
+                    f"- 対象読者：{audience}。この読者が実際に尋ねる質問を生成してください。\n"
+                )
+            if purpose:
+                intent_instructions_ja += (
+                    f"- 文書の目的：{purpose}。この目的に関連する質問を重点的に生成してください。\n"
+                )
+
+        system_prompt = (
+            "あなたは正確なデータセット生成器です。"
+            "質問は提供されたコンテキストに基づいて厳密に回答可能でなければなりません。"
+            "核心的な概念、事実、技術的詳細に焦点を当ててください。"
+            "'items'配列を含むJSONオブジェクトを返してください。"
+        )
+
+        user_prompt = f"""
+コンテキスト：
+\"\"\"{chunk_text}\"\"\"
+
+タスク：
+- {n}個の{diff_ja}レベルの質問と回答のペアを生成してください。
+- 各回答はコンテキストによって完全に裏付けられている必要があります。
+- 簡潔な根拠（1〜2文）と引用された裏付け部分を提供してください。
+- URL、リポジトリリンク、インストールコマンド、サンプル出力に関する些細な質問は生成しないでください。
+- コンテキスト内の核心的な概念、事実、技術的詳細に焦点を当ててください。
+- 各質問は、表面的な詳細ではなく、内容の真の理解をテストする必要があります。{intent_instructions_ja}
+- JSONオブジェクトを出力：{{"items": [{{"question": "...", "answer": "...", "rationale": "...", "support_span": "..."}}]}}。
+""".strip()
+    elif lang == "de":
+        difficulty_map = {"easy": "einfach", "medium": "mittel", "hard": "schwer"}
+        diff_de = difficulty_map.get(difficulty, difficulty)
+
+        intent_instructions_de = ""
+        if audience or purpose:
+            intent_instructions_de = "\n"
+            if audience:
+                intent_instructions_de += f"- Zielgruppe: {audience}. Generieren Sie Fragen, die diese Zielgruppe realistisch stellen würde.\n"
+            if purpose:
+                intent_instructions_de += f"- Dokumentzweck: {purpose}. Konzentrieren Sie die Fragen auf das, was für diesen Zweck wichtig ist.\n"
+
+        system_prompt = (
+            "Sie sind ein sorgfältiger Datensatz-Generator. "
+            "Generieren Sie Fragen, die ausschließlich aus dem bereitgestellten Kontext beantwortbar sind. "
+            "Konzentrieren Sie sich auf wesentliche Konzepte, Fakten und technische Details. "
+            "Geben Sie ein JSON-Objekt mit einem 'items'-Array zurück."
+        )
+
+        user_prompt = f"""
+Kontext:
+\"\"\"{chunk_text}\"\"\"
+
+Aufgabe:
+- Generieren Sie {n} Frage-Antwort-Paare mit dem Schwierigkeitsgrad {diff_de}.
+- Jede Antwort muss vollständig durch den Kontext belegt sein.
+- Geben Sie eine kurze Begründung (1–2 Sätze) und ein zitiertes Belegfragment an.
+- Generieren Sie KEINE trivialen Fragen zu URLs, Repository-Links, Installationsbefehlen oder Beispielausgaben.
+- Konzentrieren Sie sich auf Kernkonzepte, Fakten und technische Details im Kontext.
+- Jede Frage sollte echtes Verständnis des Inhalts testen, nicht nur oberflächliche Details.{intent_instructions_de}
+- JSON-Objekt ausgeben: {{"items": [{{"question": "...", "answer": "...", "rationale": "...", "support_span": "..."}}]}}.
 """.strip()
     else:
         # Build audience/purpose instruction for English

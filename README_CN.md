@@ -12,7 +12,7 @@
   
   🔒 隐私优先 • ⚡ 异步快速 • 🤖 任意 LLM • 🏠 本地或云端 • 🌍 多语言支持
   
-  [English](README.md) | [中文](README_CN.md) | [日本語](README_JP.md)
+  [English](README.md) | [中文](README_CN.md) | [日本語](README_JP.md) | [Deutsch](README_DE.md)
 </div>
 
 ---

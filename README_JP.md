@@ -7,12 +7,13 @@
   [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
   [![Ollama](https://img.shields.io/badge/Ollama-Supported-orange)](https://ollama.ai)
   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/HZYAI/RagScore/blob/main/examples/detailed_evaluation_demo.ipynb)
+  [![MCP](https://img.shields.io/badge/MCP-Server-purple)](https://modelcontextprotocol.io)
   
   **2つのコマンドでQAデータセット生成とRAGシステム評価**
   
   🔒 プライバシー優先 • ⚡ 非同期で高速 • 🤖 任意のLLM • 🏠 ローカルまたはクラウド • 🌍 多言語対応
   
-  [English](README.md) | [中文](README_CN.md) | [日本語](README_JP.md)
+  [English](README.md) | [中文](README_CN.md) | [日本語](README_JP.md) | [Deutsch](README_DE.md)
 </div>
 
 ---
@@ -71,6 +72,14 @@ result = quick_test(
     n=10,                                    # テスト質問数
 )
 
+# 1b. 対象読者に合わせたQA生成
+result = quick_test(
+    endpoint="http://localhost:8000/query",
+    docs="docs/",
+    audience="開発者",                         # 誰が質問するか？
+    purpose="API統合",                        # ドキュメントの目的は？
+)
+
 # 2. レポートを表示
 result.plot()
 
@@ -96,6 +105,11 @@ export OPENAI_API_KEY="sk-..."
 # 任意のドキュメントから生成
 ragscore generate paper.pdf
 ragscore generate docs/*.pdf --concurrency 10
+
+# 対象読者に合わせたQA生成
+ragscore generate docs/ --audience 開発者 --purpose FAQ
+ragscore generate docs/ --audience 顧客 --purpose 営業資料
+ragscore generate docs/ --audience 監査人 --purpose コンプライアンス
 ```
 
 ### RAGの評価
@@ -160,6 +174,8 @@ ragscore evaluate http://localhost:8000/query --detailed
 ```
 
 > 📓 [完全なデモノートブック](examples/detailed_evaluation_demo.ipynb) — ミニRAGを構築し、詳細指標でテスト。
+>
+> 🎯 [対象読者・目的デモ](examples/audience_purpose_demo.ipynb) — 開発者、顧客、監査人向けのQA生成。
 
 ---
 
@@ -238,6 +254,13 @@ from ragscore import run_pipeline, run_evaluation
 # QAペアを生成
 run_pipeline(paths=["docs/"], concurrency=10)
 
+# 対象読者に合わせたQAペアを生成
+run_pipeline(
+    paths=["docs/"],
+    audience="サポートエンジニア",
+    purpose="チャットボットのファインチューニング",
+)
+
 # RAGを評価
 results = run_evaluation(
     endpoint="http://localhost:8000/query",
@@ -266,6 +289,8 @@ ragscore evaluate http://api/query --output results.json
 | コマンド | 説明 |
 |---------|------|
 | `ragscore generate <paths>` | ドキュメントからQAペアを生成 |
+| `ragscore generate <paths> --audience <誰>` | 対象読者に合わせたQA生成 |
+| `ragscore generate <paths> --purpose <目的>` | ドキュメントの目的に合わせたQA生成 |
 | `ragscore evaluate <endpoint>` | ゴールデンQAペアに対してRAGを評価 |
 | `ragscore evaluate <endpoint> --detailed` | マルチメトリクス評価 |
 | `ragscore --help` | すべてのコマンドとオプションを表示 |
