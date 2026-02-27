@@ -28,7 +28,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Optional, Union
 
-from .data_processing import chunk_text, initialize_nltk
+from .data_processing import chunk_text, initialize_nltk, is_chunk_long_enough
 from .exceptions import RAGScoreError
 from .llm import agenerate_qa_for_chunk, detect_language, safe_json_parse
 from .ui import get_async_pbar, patch_asyncio
@@ -481,7 +481,7 @@ async def _quick_test_async(
     for doc in all_docs:
         chunks = chunk_text(doc["text"])
         for chunk_text_content in chunks:
-            if len(chunk_text_content.split()) >= 40:
+            if is_chunk_long_enough(chunk_text_content):
                 all_chunks.append(
                     {
                         "doc_id": doc["doc_id"],

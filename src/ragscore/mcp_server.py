@@ -101,7 +101,7 @@ def create_mcp_server():
             Summary of generation results and path to output file
         """
         from . import config
-        from .data_processing import chunk_text, initialize_nltk
+        from .data_processing import chunk_text, initialize_nltk, is_chunk_long_enough
         from .pipeline import _async_generate_qas, _read_from_paths
         from .providers import get_provider
 
@@ -133,7 +133,7 @@ def create_mcp_server():
             for doc in docs:
                 chunks = chunk_text(doc["text"])
                 for chunk_text_content in chunks:
-                    if len(chunk_text_content.split()) >= 40:
+                    if is_chunk_long_enough(chunk_text_content):
                         all_chunks.append(
                             {
                                 "doc_id": doc["doc_id"],

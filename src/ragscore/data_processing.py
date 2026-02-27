@@ -110,6 +110,31 @@ def read_docs(
     return docs
 
 
+def is_chunk_long_enough(text: str, min_words: int = 40) -> bool:
+    """Check if a chunk is long enough, handling CJK text where spaces are rare.
+
+    For CJK-heavy text (Chinese, Japanese, Korean), character count is used
+    instead of word count since these languages don't use spaces between words.
+    """
+    # Count CJK characters
+    cjk_chars = sum(
+        1
+        for c in text
+        if "\u4e00" <= c <= "\u9fff"  # CJK Unified Ideographs
+        or "\u3040" <= c <= "\u309f"  # Hiragana
+        or "\u30a0" <= c <= "\u30ff"  # Katakana
+        or "\uac00" <= c <= "\ud7af"  # Korean Hangul
+    )
+    total_non_space = sum(1 for c in text if c.strip())
+
+    if total_non_space > 0 and (cjk_chars / total_non_space) > 0.3:
+        # CJK text: use character count (~2 chars per concept)
+        return len(text.strip()) >= min_words * 2
+    else:
+        # Latin text: use word count
+        return len(text.split()) >= min_words
+
+
 def chunk_text(
     text: str, chunk_size: int = config.CHUNK_SIZE, overlap: int = config.CHUNK_OVERLAP
 ) -> list[str]:

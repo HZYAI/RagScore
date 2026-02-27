@@ -3,7 +3,7 @@ import json
 import random
 
 from . import __version__, config
-from .data_processing import chunk_text, initialize_nltk
+from .data_processing import chunk_text, initialize_nltk, is_chunk_long_enough
 from .llm import agenerate_qa_for_chunk
 from .ui import get_async_pbar, get_pbar, patch_asyncio
 
@@ -235,7 +235,7 @@ def run_pipeline(
     print(f"Created {len(all_chunks)} chunks from {len(docs)} documents")
 
     # Filter out short chunks
-    valid_chunks = [c for c in all_chunks if len(c["text"].split()) >= 40]
+    valid_chunks = [c for c in all_chunks if is_chunk_long_enough(c["text"])]
     print(
         f"Processing {len(valid_chunks)} chunks (skipped {len(all_chunks) - len(valid_chunks)} short chunks)"
     )
