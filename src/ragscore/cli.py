@@ -30,27 +30,51 @@ RAGScore - Generate QA datasets & evaluate RAG systems in 2 commands
   DashScope  export DASHSCOPE_API_KEY="..."  (Qwen models)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📖 EXAMPLES:
+📖 EXAMPLES - GENERATE:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   ragscore generate paper.pdf                 # Single file
   ragscore generate docs/*.pdf -c 10          # Batch with concurrency
+  ragscore generate docs/ -p ollama -m llama3.1:8b  # Local LLM
+
+  # Tailored QA for specific audiences:
   ragscore generate docs/ --audience developers --purpose faq
-  ragscore evaluate http://api/query          # Evaluate RAG
-  ragscore evaluate http://api/query -o out.json  # Save results
+  ragscore generate docs/ --audience customers --purpose "pre-sales"
+  ragscore generate docs/ --audience "new hires" --purpose onboarding
+  ragscore generate docs/ --audience auditors --purpose compliance
+
+  # Synthetic training data:
+  ragscore generate docs/ --audience "support engineers" --purpose fine-tuning
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📖 EXAMPLES - EVALUATE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ragscore evaluate http://api/query              # Basic evaluation
+  ragscore evaluate http://api/query --detailed   # 5-metric evaluation
+  ragscore evaluate http://api/query -o out.json  # Save results to file
+  ragscore evaluate http://api/query -c 10        # Higher concurrency
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🌍 MULTILINGUAL (auto-detected):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  English, 中文, 日本語, Deutsch — auto-detected from document content.
+  Prompts, QA generation, and judging all adapt to the document language.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🤖 AI ASSISTANT INTEGRATION (MCP):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   ragscore serve                              # Start MCP server
-  # Then add to Claude Desktop config to use RAGScore from Claude!
+  # Then add to Claude Desktop / Cursor config to use RAGScore via AI!
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🔗 LINKS:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   Docs:    https://github.com/HZYAI/RagScore
+  Website: https://ragscore.io
   Issues:  https://github.com/HZYAI/RagScore/issues
 """
 
@@ -117,9 +141,25 @@ def generate(
     \b
     Examples:
       ragscore generate                        # Use default data/docs/
-      ragscore generate paper.pdf              # Process single file
-      ragscore generate file1.pdf file2.txt    # Process multiple files
-      ragscore generate ./my_docs/             # Process directory
+      ragscore generate paper.pdf              # Single PDF
+      ragscore generate file1.pdf file2.txt    # Multiple files
+      ragscore generate ./my_docs/ -c 10       # Directory + concurrency
+
+    \b
+    Tailored QA (--audience / --purpose):
+      ragscore generate docs/ --audience developers --purpose faq
+      ragscore generate docs/ --audience customers --purpose "pre-sales"
+      ragscore generate docs/ --audience auditors --purpose compliance
+      ragscore generate docs/ --audience "new hires" --purpose onboarding
+      ragscore generate docs/ --audience "support engineers" --purpose fine-tuning
+
+    \b
+    Local LLM (Ollama):
+      ragscore generate docs/ -p ollama -m llama3.1:8b
+
+    \b
+    Multilingual:
+      Supports English, Chinese, Japanese, and German (auto-detected).
 
     \b
     Output:
@@ -265,7 +305,21 @@ def evaluate(
       ragscore evaluate http://localhost:8000/query
 
     \b
-    This will:
+    Examples:
+      ragscore evaluate http://localhost:8000/query
+      ragscore evaluate http://api/ask --detailed
+      ragscore evaluate http://api/ask -o results.json
+      ragscore evaluate http://api/ask -c 10 --model gpt-4o
+      ragscore evaluate http://api/ask --golden custom_qas.jsonl
+      ragscore evaluate http://api/ask --question-field q --answer-field a
+
+    \b
+    Detailed mode (--detailed):
+      Adds 5 diagnostic metrics per answer:
+      correctness, completeness, relevance, conciseness, faithfulness
+
+    \b
+    How it works:
       1. Load QA pairs from output/generated_qas.jsonl (or --golden path)
       2. Query your RAG endpoint with each question
       3. Score answers using LLM-as-judge (1-5 scale)
