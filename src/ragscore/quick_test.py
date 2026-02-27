@@ -374,6 +374,8 @@ async def _quick_test_async(
     provider=None,
     judge_provider=None,
     detailed: bool = False,
+    audience: str = None,
+    purpose: str = None,
 ) -> QuickTestResult:
     """Async implementation of quick_test."""
     import aiohttp
@@ -431,7 +433,8 @@ async def _quick_test_async(
                 # 1. Generate QA pair
                 difficulty = random.choice(["easy", "medium", "hard"])
                 qas = await agenerate_qa_for_chunk(
-                    chunk["text"], difficulty, n=1, provider=provider
+                    chunk["text"], difficulty, n=1, provider=provider,
+                    audience=audience, purpose=purpose,
                 )
                 if not qas:
                     return None
@@ -588,6 +591,8 @@ def quick_test(
     model: Optional[str] = None,
     judge_model: Optional[str] = None,
     detailed: bool = False,
+    audience: Optional[str] = None,
+    purpose: Optional[str] = None,
 ) -> QuickTestResult:
     """
     Quick RAG accuracy test - generate QAs and evaluate in one call.
@@ -606,6 +611,8 @@ def quick_test(
         judge_model: LLM model for judging (uses model if None)
         detailed: Enable multi-metric evaluation (correctness, completeness,
                   relevance, conciseness, hallucination_risk) (default: False)
+        audience: Target audience (e.g. 'developers', 'customers', 'new-hires')
+        purpose: Document purpose (e.g. 'training', 'faq', 'compliance', 'fine-tuning')
 
     Returns:
         QuickTestResult - Rich Object with:
@@ -660,6 +667,8 @@ def quick_test(
             provider=provider,
             judge_provider=judge_provider,
             detailed=detailed,
+            audience=audience,
+            purpose=purpose,
         )
     )
 

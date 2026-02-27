@@ -35,6 +35,7 @@ RAGScore - Generate QA datasets & evaluate RAG systems in 2 commands
 
   ragscore generate paper.pdf                 # Single file
   ragscore generate docs/*.pdf -c 10          # Batch with concurrency
+  ragscore generate docs/ --audience developers --purpose faq
   ragscore evaluate http://api/query          # Evaluate RAG
   ragscore evaluate http://api/query -o out.json  # Save results
 
@@ -87,6 +88,16 @@ def generate(
         "-m",
         help="Model name (e.g., llama3, gpt-4o, claude-3-sonnet)",
     ),
+    audience: Optional[str] = typer.Option(
+        None,
+        "--audience",
+        help="Target audience (e.g. 'developers', 'customers', 'new-hires')",
+    ),
+    purpose: Optional[str] = typer.Option(
+        None,
+        "--purpose",
+        help="Document purpose (e.g. 'training', 'faq', 'compliance', 'fine-tuning')",
+    ),
 ):
     """
     Generate QA pairs from your documents.
@@ -129,7 +140,10 @@ def generate(
         paths = [docs_dir]
 
     try:
-        run_pipeline(paths=paths, concurrency=concurrency, provider=provider, model=model)
+        run_pipeline(
+            paths=paths, concurrency=concurrency, provider=provider, model=model,
+            audience=audience, purpose=purpose,
+        )
     except ValueError as e:
         typer.secho(f"\n❌ Configuration error: {e}", fg=typer.colors.RED)
         typer.secho("\n💡 Tip: Set your API key with:", fg=typer.colors.YELLOW)

@@ -87,11 +87,36 @@ def detect_language(text: str) -> str:
     return "en"
 
 
-def _build_qa_prompts(chunk_text: str, difficulty: str, n: int, lang: str) -> tuple[str, str]:
-    """Build system and user prompts for QA generation."""
+def _build_qa_prompts(
+    chunk_text: str,
+    difficulty: str,
+    n: int,
+    lang: str,
+    audience: str = None,
+    purpose: str = None,
+) -> tuple[str, str]:
+    """Build system and user prompts for QA generation.
+
+    Args:
+        chunk_text: The document chunk to generate QA from.
+        difficulty: Question difficulty ('easy', 'medium', 'hard').
+        n: Number of QA pairs to generate.
+        lang: Language code ('en', 'zh').
+        audience: Target audience (e.g. 'internal staff', 'customers', 'developers').
+        purpose: Document purpose (e.g. 'training', 'compliance', 'product FAQ').
+    """
     if lang == "zh":
         difficulty_map = {"easy": "简单", "medium": "中等", "hard": "困难"}
         diff_zh = difficulty_map.get(difficulty, difficulty)
+
+        # Build audience/purpose instruction for Chinese
+        intent_instructions_zh = ""
+        if audience or purpose:
+            intent_instructions_zh = "\n"
+            if audience:
+                intent_instructions_zh += f"- 目标读者：{audience}。生成的问题应该是该读者群体实际会提出的问题。\n"
+            if purpose:
+                intent_instructions_zh += f"- 文档用途：{purpose}。生成的问题应围绕该用途的核心关注点。\n"
 
         system_prompt = (
             "你是一个细心的数据集生成器。"
@@ -110,10 +135,19 @@ def _build_qa_prompts(chunk_text: str, difficulty: str, n: int, lang: str) -> tu
 - 提供简短的理由（1-2句话）和引用的支持片段。
 - 不要生成关于URL、仓库链接、安装命令或示例输出/示例代码的琐碎问题。
 - 关注上下文中的核心概念、事实和技术细节。
-- 每个问题应测试对内容的真正理解，而不仅仅是表面细节。
+- 每个问题应测试对内容的真正理解，而不仅仅是表面细节。{intent_instructions_zh}
 - 输出JSON对象：{{"items": [{{"question": "...", "answer": "...", "rationale": "...", "support_span": "..."}}]}}。
 """.strip()
     else:
+        # Build audience/purpose instruction for English
+        intent_instructions_en = ""
+        if audience or purpose:
+            intent_instructions_en = "\n"
+            if audience:
+                intent_instructions_en += f"- Target audience: {audience}. Generate questions this audience would realistically ask.\n"
+            if purpose:
+                intent_instructions_en += f"- Document purpose: {purpose}. Focus questions on what matters for this purpose.\n"
+
         system_prompt = (
             "You are a careful dataset generator. "
             "Generate questions strictly answerable from the provided context. "
@@ -132,7 +166,7 @@ Task:
 - Provide a short rationale (1–2 sentences) and a quoted supporting span.
 - Do NOT generate trivial questions about URLs, repo links, install commands, or example output/sample code.
 - Focus on core concepts, factual claims, and technical details in the context.
-- Each question should test genuine understanding of the content, not surface-level details.
+- Each question should test genuine understanding of the content, not surface-level details.{intent_instructions_en}
 - Output a JSON object: {{"items": [{{"question": "...", "answer": "...", "rationale": "...", "support_span": "..."}}]}}.
 """.strip()
 
@@ -140,7 +174,8 @@ Task:
 
 
 def generate_qa_for_chunk(
-    chunk_text: str, difficulty: str, n: int = 2, provider=None, model: str = None
+    chunk_text: str, difficulty: str, n: int = 2, provider=None, model: str = None,
+    audience: str = None, purpose: str = None,
 ) -> list[dict[str, Any]]:
     """
     Generates question-answer pairs for a given text chunk using any LLM provider.
@@ -151,6 +186,8 @@ def generate_qa_for_chunk(
         n: Number of QA pairs to generate
         provider: LLM provider instance (auto-detected if None)
         model: Model name (uses provider default if None)
+        audience: Target audience (e.g. 'developers', 'customers')
+        purpose: Document purpose (e.g. 'training', 'faq', 'compliance')
 
     Returns:
         List of QA pair dictionaries
@@ -163,7 +200,9 @@ def generate_qa_for_chunk(
 
     # Detect language and build prompts
     lang = detect_language(chunk_text)
-    system_prompt, user_prompt = _build_qa_prompts(chunk_text, difficulty, n, lang)
+    system_prompt, user_prompt = _build_qa_prompts(
+        chunk_text, difficulty, n, lang, audience=audience, purpose=purpose
+    )
 
     try:
         # Call LLM provider
@@ -203,7 +242,8 @@ def generate_qa_for_chunk(
 
 
 async def agenerate_qa_for_chunk(
-    chunk_text: str, difficulty: str, n: int = 2, provider=None, model: str = None
+    chunk_text: str, difficulty: str, n: int = 2, provider=None, model: str = None,
+    audience: str = None, purpose: str = None,
 ) -> list[dict[str, Any]]:
     """
     Async version: Generates question-answer pairs for a given text chunk.
@@ -214,6 +254,8 @@ async def agenerate_qa_for_chunk(
         n: Number of QA pairs to generate
         provider: LLM provider instance (auto-detected if None)
         model: Model name (uses provider default if None)
+        audience: Target audience (e.g. 'developers', 'customers')
+        purpose: Document purpose (e.g. 'training', 'faq', 'compliance')
 
     Returns:
         List of QA pair dictionaries
@@ -226,7 +268,9 @@ async def agenerate_qa_for_chunk(
 
     # Detect language and build prompts
     lang = detect_language(chunk_text)
-    system_prompt, user_prompt = _build_qa_prompts(chunk_text, difficulty, n, lang)
+    system_prompt, user_prompt = _build_qa_prompts(
+        chunk_text, difficulty, n, lang, audience=audience, purpose=purpose
+    )
 
     try:
         # Call LLM provider asynchronously

@@ -78,6 +78,8 @@ async def _async_generate_qas(
     concurrency: int = 5,
     provider=None,
     num_questions: int = None,
+    audience: str = None,
+    purpose: str = None,
 ) -> list[dict]:
     """
     Async QA generation with rate limiting via Semaphore.
@@ -87,6 +89,8 @@ async def _async_generate_qas(
         concurrency: Max concurrent LLM calls (default: 5)
         provider: LLM provider instance (auto-detected if None)
         num_questions: Number of QA pairs per chunk (default: config.NUM_Q_PER_CHUNK)
+        audience: Target audience (e.g. 'developers', 'customers')
+        purpose: Document purpose (e.g. 'training', 'faq', 'compliance')
 
     Returns:
         List of generated QA pairs
@@ -111,7 +115,8 @@ async def _async_generate_qas(
             for attempt in range(max_retries):
                 try:
                     items = await agenerate_qa_for_chunk(
-                        chunk["text"], difficulty, n=n_per_chunk, provider=provider
+                        chunk["text"], difficulty, n=n_per_chunk, provider=provider,
+                        audience=audience, purpose=purpose,
                     )
 
                     # Add metadata to each item
@@ -164,7 +169,8 @@ async def _async_generate_qas(
 
 
 def run_pipeline(
-    paths=None, docs_dir=None, concurrency: int = 5, provider: str = None, model: str = None
+    paths=None, docs_dir=None, concurrency: int = 5, provider: str = None, model: str = None,
+    audience: str = None, purpose: str = None,
 ):
     """
     Executes the QA generation pipeline.
@@ -178,6 +184,8 @@ def run_pipeline(
         concurrency: Max concurrent LLM calls (default: 5, use higher for local LLMs)
         provider: LLM provider name (e.g., 'ollama', 'openai'). Auto-detected if None.
         model: Model name (e.g., 'llama3', 'gpt-4o'). Uses provider default if None.
+        audience: Target audience (e.g. 'developers', 'customers', 'new-hires')
+        purpose: Document purpose (e.g. 'training', 'faq', 'compliance', 'fine-tuning')
     """
 
     # Ensure directories exist
@@ -241,9 +249,18 @@ def run_pipeline(
         concurrency = 2
         print(f"💡 Auto-reduced concurrency to {concurrency} for local Ollama (shared GPU/CPU)")
 
+    if audience or purpose:
+        if audience:
+            print(f"🎯 Target audience: {audience}")
+        if purpose:
+            print(f"📋 Document purpose: {purpose}")
+
     # Use async generation for speed
     all_qas = asyncio.run(
-        _async_generate_qas(valid_chunks, concurrency=concurrency, provider=llm_provider)
+        _async_generate_qas(
+            valid_chunks, concurrency=concurrency, provider=llm_provider,
+            audience=audience, purpose=purpose,
+        )
     )
 
     # --- 3. Save Results ---

@@ -78,12 +78,14 @@ def create_mcp_server():
         num_questions: int = 5,
         provider: Optional[str] = None,
         model: Optional[str] = None,
+        audience: Optional[str] = None,
+        purpose: Optional[str] = None,
     ) -> str:
         """
-        Generate QA pairs from documents for RAG evaluation.
+        Generate QA pairs from documents for RAG evaluation or synthetic data.
 
         Scans documents (PDF, TXT, MD) and generates question-answer pairs
-        that can be used to test RAG systems.
+        that can be used to test RAG systems or as training data.
 
         Args:
             path: Path to file or directory containing documents
@@ -91,6 +93,8 @@ def create_mcp_server():
             num_questions: Number of QA pairs to generate per chunk (default: 5)
             provider: LLM provider (openai, anthropic, ollama). Auto-detected if not set.
             model: LLM model name (e.g. gpt-4o-mini, claude-3-haiku). Uses provider default if not set.
+            audience: Target audience (e.g. 'developers', 'customers', 'new-hires'). Tailors questions to this audience.
+            purpose: Document purpose (e.g. 'training', 'faq', 'compliance', 'fine-tuning'). Focuses questions on this purpose.
 
         Returns:
             Summary of generation results and path to output file
@@ -105,6 +109,8 @@ def create_mcp_server():
             "provider": provider or "auto",
             "num_questions": num_questions,
             "concurrency": concurrency,
+            "has_audience": bool(audience),
+            "has_purpose": bool(purpose),
         })
 
         # Suppress stdout for MCP (it uses stdout for communication)
@@ -146,6 +152,8 @@ def create_mcp_server():
                 concurrency=concurrency,
                 provider=llm_provider,
                 num_questions=num_questions,
+                audience=audience,
+                purpose=purpose,
             )
 
             if not all_qas:
@@ -273,6 +281,8 @@ def create_mcp_server():
         provider: Optional[str] = None,
         model: Optional[str] = None,
         detailed: bool = False,
+        audience: Optional[str] = None,
+        purpose: Optional[str] = None,
     ) -> str:
         """
         Quick RAG accuracy test - generate QAs and evaluate in one call.
@@ -287,6 +297,8 @@ def create_mcp_server():
             provider: LLM provider (openai, anthropic, ollama). Auto-detected if not set.
             model: LLM model name. Uses provider default if not set.
             detailed: Enable multi-metric evaluation (correctness, completeness, relevance, conciseness, faithfulness). Default: False.
+            audience: Target audience (e.g. 'developers', 'customers'). Tailors generated questions.
+            purpose: Document purpose (e.g. 'training', 'faq', 'compliance'). Focuses generated questions.
 
         Returns:
             Test results with pass/fail status and details
@@ -321,6 +333,8 @@ def create_mcp_server():
                 provider=qt_provider,
                 judge_provider=qt_provider,
                 detailed=detailed,
+                audience=audience,
+                purpose=purpose,
             )
 
             # Save corrections so get_corrections() can retrieve them
