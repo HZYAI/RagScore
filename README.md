@@ -178,6 +178,8 @@ ragscore evaluate http://localhost:8000/query --detailed
 > 📓 [Full demo notebook](examples/detailed_evaluation_demo.ipynb) — build a mini RAG and test it with detailed metrics.
 >
 > 🎯 [Audience & Purpose demo](examples/audience_purpose_demo.ipynb) — generate tailored QA for developers, customers, auditors, and more.
+>
+> 🏠 [Ollama local demo](examples/ollama_local_demo.ipynb) — 100% private RAG evaluation with no API keys.
 
 ---
 
