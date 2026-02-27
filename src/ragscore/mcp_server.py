@@ -69,6 +69,7 @@ def create_mcp_server():
     def _track_mcp_event(event_name: str, properties: dict = None):
         """Track MCP tool usage."""
         from . import config
+
         config.track_event(event_name, properties or {})
 
     @mcp.tool()
@@ -105,13 +106,16 @@ def create_mcp_server():
         from .providers import get_provider
 
         # Track usage
-        _track_mcp_event("mcp_generate_qa", {
-            "provider": provider or "auto",
-            "num_questions": num_questions,
-            "concurrency": concurrency,
-            "has_audience": bool(audience),
-            "has_purpose": bool(purpose),
-        })
+        _track_mcp_event(
+            "mcp_generate_qa",
+            {
+                "provider": provider or "auto",
+                "num_questions": num_questions,
+                "concurrency": concurrency,
+                "has_audience": bool(audience),
+                "has_purpose": bool(purpose),
+            },
+        )
 
         # Suppress stdout for MCP (it uses stdout for communication)
         old_stdout = sys.stdout
@@ -205,11 +209,14 @@ def create_mcp_server():
             dataset_path = str(config.GENERATED_QAS_PATH)
 
         # Track usage
-        _track_mcp_event("mcp_evaluate_rag", {
-            "provider": provider or "auto",
-            "concurrency": concurrency,
-            "detailed": detailed,
-        })
+        _track_mcp_event(
+            "mcp_evaluate_rag",
+            {
+                "provider": provider or "auto",
+                "concurrency": concurrency,
+                "detailed": detailed,
+            },
+        )
 
         # Suppress stdout for MCP
         old_stdout = sys.stdout
@@ -308,12 +315,15 @@ def create_mcp_server():
         from .quick_test import _quick_test_async
 
         # Track usage
-        _track_mcp_event("mcp_quick_test", {
-            "provider": provider or "auto",
-            "num_questions": num_questions,
-            "threshold": threshold,
-            "detailed": detailed,
-        })
+        _track_mcp_event(
+            "mcp_quick_test",
+            {
+                "provider": provider or "auto",
+                "num_questions": num_questions,
+                "threshold": threshold,
+                "detailed": detailed,
+            },
+        )
 
         # Suppress stdout for MCP
         old_stdout = sys.stdout

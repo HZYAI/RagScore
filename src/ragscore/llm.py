@@ -114,9 +114,13 @@ def _build_qa_prompts(
         if audience or purpose:
             intent_instructions_zh = "\n"
             if audience:
-                intent_instructions_zh += f"- 目标读者：{audience}。生成的问题应该是该读者群体实际会提出的问题。\n"
+                intent_instructions_zh += (
+                    f"- 目标读者：{audience}。生成的问题应该是该读者群体实际会提出的问题。\n"
+                )
             if purpose:
-                intent_instructions_zh += f"- 文档用途：{purpose}。生成的问题应围绕该用途的核心关注点。\n"
+                intent_instructions_zh += (
+                    f"- 文档用途：{purpose}。生成的问题应围绕该用途的核心关注点。\n"
+                )
 
         system_prompt = (
             "你是一个细心的数据集生成器。"
@@ -174,8 +178,13 @@ Task:
 
 
 def generate_qa_for_chunk(
-    chunk_text: str, difficulty: str, n: int = 2, provider=None, model: str = None,
-    audience: str = None, purpose: str = None,
+    chunk_text: str,
+    difficulty: str,
+    n: int = 2,
+    provider=None,
+    model: str = None,
+    audience: str = None,
+    purpose: str = None,
 ) -> list[dict[str, Any]]:
     """
     Generates question-answer pairs for a given text chunk using any LLM provider.
@@ -242,8 +251,13 @@ def generate_qa_for_chunk(
 
 
 async def agenerate_qa_for_chunk(
-    chunk_text: str, difficulty: str, n: int = 2, provider=None, model: str = None,
-    audience: str = None, purpose: str = None,
+    chunk_text: str,
+    difficulty: str,
+    n: int = 2,
+    provider=None,
+    model: str = None,
+    audience: str = None,
+    purpose: str = None,
 ) -> list[dict[str, Any]]:
     """
     Async version: Generates question-answer pairs for a given text chunk.

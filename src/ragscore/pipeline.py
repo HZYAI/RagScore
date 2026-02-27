@@ -115,8 +115,12 @@ async def _async_generate_qas(
             for attempt in range(max_retries):
                 try:
                     items = await agenerate_qa_for_chunk(
-                        chunk["text"], difficulty, n=n_per_chunk, provider=provider,
-                        audience=audience, purpose=purpose,
+                        chunk["text"],
+                        difficulty,
+                        n=n_per_chunk,
+                        provider=provider,
+                        audience=audience,
+                        purpose=purpose,
                     )
 
                     # Add metadata to each item
@@ -169,8 +173,13 @@ async def _async_generate_qas(
 
 
 def run_pipeline(
-    paths=None, docs_dir=None, concurrency: int = 5, provider: str = None, model: str = None,
-    audience: str = None, purpose: str = None,
+    paths=None,
+    docs_dir=None,
+    concurrency: int = 5,
+    provider: str = None,
+    model: str = None,
+    audience: str = None,
+    purpose: str = None,
 ):
     """
     Executes the QA generation pipeline.
@@ -258,8 +267,11 @@ def run_pipeline(
     # Use async generation for speed
     all_qas = asyncio.run(
         _async_generate_qas(
-            valid_chunks, concurrency=concurrency, provider=llm_provider,
-            audience=audience, purpose=purpose,
+            valid_chunks,
+            concurrency=concurrency,
+            provider=llm_provider,
+            audience=audience,
+            purpose=purpose,
         )
     )
 

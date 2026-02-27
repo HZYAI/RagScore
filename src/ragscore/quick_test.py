@@ -433,8 +433,12 @@ async def _quick_test_async(
                 # 1. Generate QA pair
                 difficulty = random.choice(["easy", "medium", "hard"])
                 qas = await agenerate_qa_for_chunk(
-                    chunk["text"], difficulty, n=1, provider=provider,
-                    audience=audience, purpose=purpose,
+                    chunk["text"],
+                    difficulty,
+                    n=1,
+                    provider=provider,
+                    audience=audience,
+                    purpose=purpose,
                 )
                 if not qas:
                     return None

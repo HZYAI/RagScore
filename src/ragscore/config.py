@@ -72,6 +72,7 @@ def get_telemetry_client():
     if _posthog_client is None:
         try:
             import posthog
+
             posthog.project_api_key = POSTHOG_API_KEY
             posthog.host = POSTHOG_HOST
             _posthog_client = posthog
@@ -100,14 +101,11 @@ def track_event(event_name: str, properties: dict = None, distinct_id: str = Non
             # Use anonymous machine ID
             import platform
             import uuid
+
             machine_id = f"{platform.node()}-{uuid.getnode()}"
             distinct_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, machine_id))
 
-        client.capture(
-            distinct_id=distinct_id,
-            event=event_name,
-            properties=properties or {}
-        )
+        client.capture(distinct_id=distinct_id, event=event_name, properties=properties or {})
         # Flush immediately to ensure event is sent
         client.flush()
     except Exception:

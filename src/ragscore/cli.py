@@ -141,8 +141,12 @@ def generate(
 
     try:
         run_pipeline(
-            paths=paths, concurrency=concurrency, provider=provider, model=model,
-            audience=audience, purpose=purpose,
+            paths=paths,
+            concurrency=concurrency,
+            provider=provider,
+            model=model,
+            audience=audience,
+            purpose=purpose,
         )
     except ValueError as e:
         typer.secho(f"\n❌ Configuration error: {e}", fg=typer.colors.RED)
