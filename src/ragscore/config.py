@@ -65,10 +65,10 @@ _posthog_client = None
 def get_telemetry_client():
     """Get PostHog client if telemetry is enabled."""
     global _posthog_client
-    
+
     if not TELEMETRY_ENABLED:
         return None
-    
+
     if _posthog_client is None:
         try:
             import posthog
@@ -78,14 +78,14 @@ def get_telemetry_client():
         except ImportError:
             # PostHog not installed, silently disable telemetry
             return None
-    
+
     return _posthog_client
 
 
 def track_event(event_name: str, properties: dict = None, distinct_id: str = None):
     """
     Track a telemetry event.
-    
+
     Args:
         event_name: Name of the event (e.g., "mcp_generate_qa")
         properties: Event properties (e.g., {"provider": "openai"})
@@ -94,15 +94,15 @@ def track_event(event_name: str, properties: dict = None, distinct_id: str = Non
     client = get_telemetry_client()
     if client is None:
         return
-    
+
     try:
         if distinct_id is None:
             # Use anonymous machine ID
-            import uuid
             import platform
+            import uuid
             machine_id = f"{platform.node()}-{uuid.getnode()}"
             distinct_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, machine_id))
-        
+
         client.capture(
             distinct_id=distinct_id,
             event=event_name,
