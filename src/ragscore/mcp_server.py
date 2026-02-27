@@ -66,6 +66,11 @@ def create_mcp_server():
 
     mcp = FastMCP("RAGScore")
 
+    def _track_mcp_event(event_name: str, properties: dict = None):
+        """Track MCP tool usage."""
+        from . import config
+        config.track_event(event_name, properties or {})
+
     @mcp.tool()
     async def generate_qa_dataset(
         path: str,
@@ -94,6 +99,13 @@ def create_mcp_server():
         from .data_processing import chunk_text, initialize_nltk
         from .pipeline import _async_generate_qas, _read_from_paths
         from .providers import get_provider
+
+        # Track usage
+        _track_mcp_event("mcp_generate_qa", {
+            "provider": provider or "auto",
+            "num_questions": num_questions,
+            "concurrency": concurrency,
+        })
 
         # Suppress stdout for MCP (it uses stdout for communication)
         old_stdout = sys.stdout
@@ -183,6 +195,13 @@ def create_mcp_server():
 
         if dataset_path is None:
             dataset_path = str(config.GENERATED_QAS_PATH)
+
+        # Track usage
+        _track_mcp_event("mcp_evaluate_rag", {
+            "provider": provider or "auto",
+            "concurrency": concurrency,
+            "detailed": detailed,
+        })
 
         # Suppress stdout for MCP
         old_stdout = sys.stdout
@@ -276,6 +295,14 @@ def create_mcp_server():
         from .providers import get_provider
         from .quick_test import _quick_test_async
 
+        # Track usage
+        _track_mcp_event("mcp_quick_test", {
+            "provider": provider or "auto",
+            "num_questions": num_questions,
+            "threshold": threshold,
+            "detailed": detailed,
+        })
+
         # Suppress stdout for MCP
         old_stdout = sys.stdout
         sys.stdout = sys.stderr
@@ -357,6 +384,9 @@ def create_mcp_server():
             JSON array of corrections or path to saved file
         """
         from . import config
+
+        # Track usage
+        _track_mcp_event("mcp_get_corrections", {})
 
         results_path = Path(config.OUTPUT_DIR) / "quick_test_corrections.jsonl"
 
