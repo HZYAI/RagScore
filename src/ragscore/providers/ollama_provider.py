@@ -38,7 +38,7 @@ class OllamaProvider(BaseLLMProvider):
     """
 
     PROVIDER_NAME = "ollama"
-    DEFAULT_MODEL = "llama2"
+    DEFAULT_MODEL = "llama3.1"
     DEFAULT_BASE_URL = "http://localhost:11434"
 
     # Preferred models in order (pick first available)

@@ -5,6 +5,120 @@ All notable changes to RAGScore will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.8] - 2026-03-12
+
+### Added
+- `ragscore --version` CLI command
+
+### Changed
+- Ollama default model updated from `llama2` to `llama3.1`
+- Updated CHANGELOG with all missing entries (v0.6.4–v0.7.7)
+
+## [0.7.7] - 2026-02-27
+
+### Fixed
+- **CJK chunk filtering** — `is_chunk_long_enough()` helper uses character count for Japanese/Chinese/Korean text where `split()` returns 1 token for entire sentences
+- Fixed Japanese and German Colab notebooks to pin `ragscore>=0.7.7`
+
+### Changed
+- CLI `--help` now shows richer examples for generate and evaluate commands
+
+## [0.7.6] - 2026-02-15
+
+### Added
+- **Japanese language support** — auto-detected prompts, QA generation, and judging in Japanese
+- **German language support** — auto-detected prompts, QA generation, and judging in German
+- `README_JP.md` and `README_DE.md` translations
+- `examples/japanese_demo.ipynb` and `examples/german_demo.ipynb` Colab notebooks
+
+## [0.7.5] - 2026-02-11
+
+### Added
+- **`--audience` and `--purpose` flags** for tailored QA generation
+  - `ragscore generate docs/ --audience developers --purpose faq`
+  - Works in CLI, Python API (`quick_test`), and MCP server
+- `examples/audience_purpose_demo.ipynb` Colab notebook
+- PostHog telemetry for MCP server usage tracking
+
+## [0.7.4] - 2026-02-07
+
+### Changed
+- Multilingual QA generation improvements
+- README updates across all languages
+
+## [0.7.3] - 2026-02-05
+
+### Added
+- Star CTA in evaluate/quick_test output
+- Colab badge now links to detailed evaluation demo
+
+### Changed
+- Better API key setup guidance in error messages
+
+## [0.7.2] - 2026-02-03
+
+### Added
+- Ollama auto-detects best available model from pulled models
+- MCP `num_questions` parameter
+
+### Fixed
+- Better error messages for missing providers
+
+## [0.7.1] - 2026-01-31
+
+### Fixed
+- MCP server `asyncio.run()` bug in notebook environments
+- Demo notebook: restored RAG builder cell, fixed faithfulness reference
+- Dollar sign rendering in notebook output
+
+## [0.7.0] - 2026-01-30
+
+### Added
+- **`--detailed` multi-metric evaluation** — 5 dimensions per answer in a single LLM call
+  - Metrics: correctness, completeness, relevance, conciseness, faithfulness
+  - Radar chart visualization in `.plot()`
+  - CLI: `ragscore evaluate --detailed`
+- `examples/detailed_evaluation_demo.ipynb` Colab notebook
+
+## [0.6.10] - 2026-01-28
+
+### Fixed
+- MCP Registry server name fix
+
+## [0.6.9] - 2026-01-28
+
+### Added
+- MCP Registry `server.json` and badge
+
+## [0.6.8] - 2026-01-27
+
+### Fixed
+- MCP server provider parameter handling
+- Corrections persistence in MCP server
+- Examples lint and API correctness
+
+## [0.6.7] - 2026-01-27
+
+### Fixed
+- Provider signatures, prompt quality, JSON parsing improvements
+- Python 3.13 compatibility fixes
+
+## [0.6.6] - 2026-01-26
+
+### Fixed
+- Added `requests` to core dependencies for Ollama support
+
+## [0.6.5] - 2026-01-26
+
+### Added
+- Python 3.13 support
+
+## [0.6.4] - 2026-01-25
+
+### Changed
+- Ollama performance improvements and model guide in README
+- Updated tagline to "The Fastest RAG Audit"
+
 ## [0.6.3] - 2026-01-25
 
 ### Added

@@ -2,6 +2,8 @@ from typing import Optional
 
 import typer
 
+from . import __version__
+
 HELP_TEXT = """
 RAGScore - Generate QA datasets & evaluate RAG systems in 2 commands
 
@@ -217,9 +219,7 @@ def main(
     📚 Documentation: https://github.com/HZYAI/RagScore
     """
     if version:
-        from . import __version__
-
-        typer.echo(f"RAGScore version {__version__}")
+        typer.echo(f"ragscore {__version__}")
         raise typer.Exit()
 
     if ctx.invoked_subcommand is None:
