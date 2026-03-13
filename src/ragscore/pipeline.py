@@ -1,6 +1,7 @@
 import asyncio
 import json
 import random
+from pathlib import Path
 
 from . import __version__, config
 from .data_processing import chunk_text, initialize_nltk, is_chunk_long_enough
@@ -180,6 +181,7 @@ def run_pipeline(
     model: str = None,
     audience: str = None,
     purpose: str = None,
+    output_path: str = None,
 ):
     """
     Executes the QA generation pipeline.
@@ -195,6 +197,7 @@ def run_pipeline(
         model: Model name (e.g., 'llama3', 'gpt-4o'). Uses provider default if None.
         audience: Target audience (e.g. 'developers', 'customers', 'new-hires')
         purpose: Document purpose (e.g. 'training', 'faq', 'compliance', 'fine-tuning')
+        output_path: Path to save generated QAs (default: output/generated_qas.jsonl)
     """
 
     # Ensure directories exist
@@ -280,11 +283,14 @@ def run_pipeline(
         print("\nNo QA pairs were generated.")
         return
 
+    save_path = Path(output_path) if output_path else config.GENERATED_QAS_PATH
+    save_path.parent.mkdir(parents=True, exist_ok=True)
+
     print(f"\n--- Saving {len(all_qas)} Generated QAs ---")
-    with open(config.GENERATED_QAS_PATH, "w", encoding="utf-8") as f:
+    with open(save_path, "w", encoding="utf-8") as f:
         for qa in all_qas:
             f.write(json.dumps(qa, ensure_ascii=False) + "\n")
 
-    print(f"✅ Pipeline complete! Results saved to {config.GENERATED_QAS_PATH}")
+    print(f"✅ Pipeline complete! Results saved to {save_path}")
     print("\n⭐ Enjoying RAGScore? Star us: https://github.com/HZYAI/RagScore")
     print("💬 Questions? Join discussions: https://github.com/HZYAI/RagScore/discussions")

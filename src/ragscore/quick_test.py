@@ -444,9 +444,42 @@ Score each dimension 1-5:
 Output JSON: {{"score": N, "reason": "brief explanation", "correctness": N, "completeness": N, "relevance": N, "conciseness": N, "faithfulness": N}}"""
 
 
+def _load_golden_qas(path: Union[str, Path]) -> list[dict]:
+    """Load golden QA pairs from a JSONL file for quick_test."""
+    path = Path(path)
+    if not path.exists():
+        raise RAGScoreError(f"Golden QA file not found: {path}")
+
+    qas = []
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                try:
+                    qa = json.loads(line)
+                    if "question" in qa and "answer" in qa:
+                        qas.append(qa)
+                except json.JSONDecodeError:
+                    continue
+
+    if not qas:
+        raise RAGScoreError(f"No valid QA pairs found in {path}")
+
+    return qas
+
+
+def _save_golden_qas(qas: list[dict], path: Union[str, Path]) -> None:
+    """Save generated QA pairs to a JSONL file for reuse."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        for qa in qas:
+            f.write(json.dumps(qa, ensure_ascii=False) + "\n")
+
+
 async def _quick_test_async(
     endpoint: Union[str, Callable],
-    docs: Union[str, list[str], Path],
+    docs: Union[str, list[str], Path] = None,
     n: int = 10,
     threshold: float = 0.7,
     concurrency: int = 5,
@@ -456,53 +489,190 @@ async def _quick_test_async(
     detailed: bool = False,
     audience: str = None,
     purpose: str = None,
+    golden: Union[str, Path] = None,
+    save_golden: Union[str, Path] = None,
 ) -> QuickTestResult:
     """Async implementation of quick_test."""
     import aiohttp
 
     # Get providers
-    if provider is None:
-        from .providers import get_provider
+    if golden is not None:
+        # Golden mode: only need judge provider, not generation provider
+        if judge_provider is None:
+            if provider is not None:
+                judge_provider = provider
+            else:
+                from .providers import get_provider
 
-        provider = get_provider()
+                judge_provider = get_provider()
+    else:
+        if provider is None:
+            from .providers import get_provider
 
-    if judge_provider is None:
-        judge_provider = provider
+            provider = get_provider()
 
-    # Initialize NLTK
-    initialize_nltk()
-
-    # Read and chunk documents
-    all_docs = _read_docs_for_quicktest(docs)
-    if not all_docs:
-        raise RAGScoreError(f"No documents found in {docs}")
-
-    all_chunks = []
-    for doc in all_docs:
-        chunks = chunk_text(doc["text"])
-        for chunk_text_content in chunks:
-            if is_chunk_long_enough(chunk_text_content):
-                all_chunks.append(
-                    {
-                        "doc_id": doc["doc_id"],
-                        "path": doc["path"],
-                        "text": chunk_text_content,
-                        "chunk_id": len(all_chunks),
-                    }
-                )
-
-    if not all_chunks:
-        raise RAGScoreError("No valid chunks found (all too short)")
-
-    # Sample chunks for quick test
-    sample_chunks = random.sample(all_chunks, min(n, len(all_chunks)))
+        if judge_provider is None:
+            judge_provider = provider
 
     semaphore = asyncio.Semaphore(concurrency)
     results = []
     corrections = []
 
+    # === Golden mode: load pre-generated QAs ===
+    if golden is not None:
+        golden_qas = _load_golden_qas(golden)
+        # Respect n limit
+        if len(golden_qas) > n:
+            golden_qas = random.sample(golden_qas, n)
+        if not silent:
+            print(f"📂 Loaded {len(golden_qas)} QA pairs from {golden}")
+    else:
+        # === Generate mode: read docs, chunk, generate QAs ===
+        if docs is None:
+            raise RAGScoreError("Either 'docs' or 'golden' must be provided")
+
+        # Initialize NLTK
+        initialize_nltk()
+
+        # Read and chunk documents
+        all_docs = _read_docs_for_quicktest(docs)
+        if not all_docs:
+            raise RAGScoreError(f"No documents found in {docs}")
+
+        all_chunks = []
+        for doc in all_docs:
+            chunks = chunk_text(doc["text"])
+            for chunk_text_content in chunks:
+                if is_chunk_long_enough(chunk_text_content):
+                    all_chunks.append(
+                        {
+                            "doc_id": doc["doc_id"],
+                            "path": doc["path"],
+                            "text": chunk_text_content,
+                            "chunk_id": len(all_chunks),
+                        }
+                    )
+
+        if not all_chunks:
+            raise RAGScoreError("No valid chunks found (all too short)")
+
+        # Sample chunks for quick test
+        sample_chunks = random.sample(all_chunks, min(n, len(all_chunks)))
+        golden_qas = None  # Will be populated during processing
+
     # Determine if endpoint is a function or URL
     is_function = callable(endpoint)
+
+    async def _query_rag(
+        question: str, http_session: Optional[aiohttp.ClientSession] = None
+    ) -> str:
+        """Query the RAG endpoint with a question."""
+        if is_function and callable(endpoint):
+            try:
+                if asyncio.iscoroutinefunction(endpoint):
+                    rag_answer = await endpoint(question)
+                else:
+                    rag_answer = endpoint(question)
+                return str(rag_answer) if rag_answer else ""
+            except Exception as e:
+                return f"[ERROR: {e}]"
+        else:
+            try:
+                payload = {"question": question}
+                async with http_session.post(
+                    endpoint, json=payload, timeout=aiohttp.ClientTimeout(total=30)
+                ) as resp:
+                    data = await resp.json()
+                    rag_answer = data.get("answer", data.get("response", data.get("text", "")))
+                    return str(rag_answer) if rag_answer else ""
+            except Exception as e:
+                return f"[ERROR: {e}]"
+
+    async def _judge(question: str, golden_answer: str, rag_answer: str) -> tuple[int, str, dict]:
+        """Judge a RAG answer against the golden answer."""
+        lang = detect_language(question)
+        judge_prompt = _build_judge_prompt(
+            question, golden_answer, rag_answer, lang, detailed=detailed
+        )
+
+        messages = [
+            {
+                "role": "system",
+                "content": "You are an impartial judge. Output only valid JSON.",
+            },
+            {"role": "user", "content": judge_prompt},
+        ]
+
+        try:
+            judge_resp = await judge_provider.agenerate(
+                messages=messages, temperature=0.3, json_mode=True
+            )
+            data = safe_json_parse(judge_resp.content)
+            score = max(1, min(5, int(data.get("score", 1))))
+            reason = data.get("reason", "No reason provided")
+            return score, reason, data
+        except Exception as e:
+            return 1, f"Judge error: {e}", {}
+
+    def _build_result(
+        question: str,
+        golden_answer: str,
+        rag_answer: str,
+        score: int,
+        reason: str,
+        data: dict,
+        source: str,
+    ) -> dict:
+        """Build a result dict and track corrections."""
+        is_correct = score >= 4
+        result = {
+            "question": question,
+            "golden_answer": golden_answer,
+            "rag_answer": rag_answer,
+            "score": score,
+            "reason": reason,
+            "is_correct": is_correct,
+            "source": source,
+        }
+        if detailed:
+            for metric in _DETAILED_METRICS:
+                val = data.get(metric)
+                if val is not None:
+                    result[metric] = max(1, min(5, int(val)))
+                else:
+                    result[metric] = None
+        if not is_correct:
+            corrections.append(
+                {
+                    "question": question,
+                    "incorrect_answer": rag_answer,
+                    "correct_answer": golden_answer,
+                    "source": source,
+                }
+            )
+        return result
+
+    async def process_golden_qa(
+        qa: dict, http_session: Optional[aiohttp.ClientSession] = None
+    ) -> Optional[dict]:
+        """Query RAG and judge using a pre-generated QA pair."""
+        async with semaphore:
+            try:
+                question = qa.get("question", "")
+                golden_answer = qa.get("answer", "")
+                source = qa.get("source", qa.get("doc_id", "golden"))
+                if not question or not golden_answer:
+                    return None
+
+                rag_answer = await _query_rag(question, http_session)
+                score, reason, data = await _judge(question, golden_answer, rag_answer)
+                return _build_result(
+                    question, golden_answer, rag_answer, score, reason, data, source
+                )
+            except Exception as e:
+                if not silent:
+                    print(f"Error processing QA: {e}", file=sys.stderr)
+                return None
 
     async def process_chunk(
         chunk: dict, http_session: Optional[aiohttp.ClientSession] = None
@@ -530,100 +700,38 @@ async def _quick_test_async(
                 if not question or not golden_answer:
                     return None
 
-                # 2. Query RAG endpoint
-                if is_function and callable(endpoint):
-                    # Call function directly
-                    try:
-                        if asyncio.iscoroutinefunction(endpoint):
-                            rag_answer = await endpoint(question)
-                        else:
-                            rag_answer = endpoint(question)
-                        rag_answer = str(rag_answer) if rag_answer else ""
-                    except Exception as e:
-                        rag_answer = f"[ERROR: {e}]"
-                else:
-                    # HTTP endpoint - use shared session
-                    try:
-                        payload = {"question": question}
-                        async with http_session.post(
-                            endpoint, json=payload, timeout=aiohttp.ClientTimeout(total=30)
-                        ) as resp:
-                            data = await resp.json()
-                            rag_answer = data.get(
-                                "answer", data.get("response", data.get("text", ""))
-                            )
-                            rag_answer = str(rag_answer) if rag_answer else ""
-                    except Exception as e:
-                        rag_answer = f"[ERROR: {e}]"
-
-                # 3. Judge the answer
-                lang = detect_language(question)
-                judge_prompt = _build_judge_prompt(
-                    question, golden_answer, rag_answer, lang, detailed=detailed
-                )
-
-                messages = [
-                    {
-                        "role": "system",
-                        "content": "You are an impartial judge. Output only valid JSON.",
-                    },
-                    {"role": "user", "content": judge_prompt},
-                ]
-
-                try:
-                    judge_resp = await judge_provider.agenerate(
-                        messages=messages, temperature=0.3, json_mode=True
-                    )
-                    data = safe_json_parse(judge_resp.content)
-                    score = max(1, min(5, int(data.get("score", 1))))
-                    reason = data.get("reason", "No reason provided")
-                except Exception as e:
-                    score = 1
-                    reason = f"Judge error: {e}"
-                    data = {}
-
-                is_correct = score >= 4
-
-                result = {
-                    "question": question,
-                    "golden_answer": golden_answer,
-                    "rag_answer": rag_answer,
-                    "score": score,
-                    "reason": reason,
-                    "is_correct": is_correct,
-                    "source": chunk["path"],
-                }
-
-                # Add detailed metrics if available
-                if detailed:
-                    for metric in _DETAILED_METRICS:
-                        val = data.get(metric)
-                        if val is not None:
-                            result[metric] = max(1, min(5, int(val)))
-                        else:
-                            result[metric] = None
-
-                # Track corrections for incorrect answers
-                if not is_correct:
-                    corrections.append(
+                # Store for save_golden
+                if save_golden is not None:
+                    generated_qas_list.append(
                         {
                             "question": question,
-                            "incorrect_answer": rag_answer,
-                            "correct_answer": golden_answer,
+                            "answer": golden_answer,
                             "source": chunk["path"],
+                            "doc_id": chunk["doc_id"],
+                            "difficulty": difficulty,
                         }
                     )
 
-                return result
+                rag_answer = await _query_rag(question, http_session)
+                score, reason, data = await _judge(question, golden_answer, rag_answer)
+                return _build_result(
+                    question, golden_answer, rag_answer, score, reason, data, chunk["path"]
+                )
 
             except Exception as e:
                 if not silent:
                     print(f"Error processing chunk: {e}", file=sys.stderr)
                 return None
 
-    # Process all chunks with a shared HTTP session
+    # Track generated QAs for save_golden
+    generated_qas_list = []
+
+    # Process with shared HTTP session
     async with aiohttp.ClientSession() as shared_session:
-        tasks = [process_chunk(chunk, http_session=shared_session) for chunk in sample_chunks]
+        if golden is not None:
+            tasks = [process_golden_qa(qa, http_session=shared_session) for qa in golden_qas]
+        else:
+            tasks = [process_chunk(chunk, http_session=shared_session) for chunk in sample_chunks]
 
         if silent:
             raw_results = await asyncio.gather(*tasks)
@@ -633,6 +741,12 @@ async def _quick_test_async(
 
     # Filter out None results
     results = [r for r in raw_results if r is not None]
+
+    # Save generated QAs for reuse
+    if save_golden is not None and generated_qas_list:
+        _save_golden_qas(generated_qas_list, save_golden)
+        if not silent:
+            print(f"💾 Saved {len(generated_qas_list)} QA pairs to {save_golden}")
 
     if not results:
         return QuickTestResult(
@@ -667,7 +781,7 @@ async def _quick_test_async(
 
 def quick_test(
     endpoint: Union[str, Callable],
-    docs: Union[str, list[str], Path],
+    docs: Union[str, list[str], Path] = None,
     n: int = 10,
     threshold: float = 0.7,
     concurrency: int = 5,
@@ -677,6 +791,8 @@ def quick_test(
     detailed: bool = False,
     audience: Optional[str] = None,
     purpose: Optional[str] = None,
+    golden: Optional[Union[str, Path]] = None,
+    save_golden: Optional[Union[str, Path]] = None,
 ) -> QuickTestResult:
     """
     Quick RAG accuracy test - generate QAs and evaluate in one call.
@@ -686,7 +802,8 @@ def quick_test(
 
     Args:
         endpoint: RAG API URL (str) or callable function
-        docs: Path to documents (file, directory, or list of paths)
+        docs: Path to documents (file, directory, or list of paths).
+              Required unless 'golden' is provided.
         n: Number of test questions to generate (default: 10)
         threshold: Pass/fail accuracy threshold (default: 0.7 = 70%)
         concurrency: Max concurrent operations (default: 5)
@@ -694,9 +811,14 @@ def quick_test(
         model: LLM model for QA generation (auto-detected if None)
         judge_model: LLM model for judging (uses model if None)
         detailed: Enable multi-metric evaluation (correctness, completeness,
-                  relevance, conciseness, hallucination_risk) (default: False)
+                  relevance, conciseness, faithfulness) (default: False)
         audience: Target audience (e.g. 'developers', 'customers', 'new-hires')
         purpose: Document purpose (e.g. 'training', 'faq', 'compliance', 'fine-tuning')
+        golden: Path to pre-generated QA pairs (JSONL). Skips doc reading and
+                QA generation — only queries RAG and judges. Saves LLM cost
+                and enables deterministic regression testing.
+        save_golden: Path to save generated QA pairs (JSONL) for future reuse.
+                     Only used when generating from docs (not with 'golden').
 
     Returns:
         QuickTestResult - Rich Object with:
@@ -710,6 +832,12 @@ def quick_test(
         result = quick_test("http://localhost:8000/query", docs="docs/")
         print(f"Accuracy: {result.accuracy:.0%}")
 
+        # Generate + save golden QAs for reuse
+        result = quick_test(endpoint, docs="docs/", save_golden="golden.jsonl")
+
+        # Reuse golden QAs (no LLM cost for generation, deterministic)
+        result = quick_test(endpoint, golden="golden.jsonl")
+
         # Detailed multi-metric evaluation
         result = quick_test(endpoint, docs="docs/", detailed=True)
         result.df[["question", "correctness", "completeness", "faithfulness"]]
@@ -719,9 +847,9 @@ def quick_test(
             return my_vectorstore.query(question)
         result = quick_test(my_rag, docs="docs/")
 
-        # In pytest
+        # CI/CD regression test with saved golden QAs
         def test_rag_accuracy():
-            result = quick_test(endpoint, docs="docs/", threshold=0.8)
+            result = quick_test(endpoint, golden="tests/golden.jsonl", threshold=0.8)
             assert result.passed, f"RAG accuracy too low: {result.accuracy:.0%}"
     """
     # Get providers
@@ -753,6 +881,8 @@ def quick_test(
             detailed=detailed,
             audience=audience,
             purpose=purpose,
+            golden=golden,
+            save_golden=save_golden,
         )
     )
 

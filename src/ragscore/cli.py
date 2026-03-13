@@ -37,16 +37,12 @@ RAGScore - Generate QA datasets & evaluate RAG systems in 2 commands
 
   ragscore generate paper.pdf                 # Single file
   ragscore generate docs/*.pdf -c 10          # Batch with concurrency
+  ragscore generate docs/ -o golden.jsonl     # Save to custom path
   ragscore generate docs/ -p ollama -m llama3.1:8b  # Local LLM
 
   # Tailored QA for specific audiences:
   ragscore generate docs/ --audience developers --purpose faq
   ragscore generate docs/ --audience customers --purpose "pre-sales"
-  ragscore generate docs/ --audience "new hires" --purpose onboarding
-  ragscore generate docs/ --audience auditors --purpose compliance
-
-  # Synthetic training data:
-  ragscore generate docs/ --audience "support engineers" --purpose fine-tuning
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📖 EXAMPLES - EVALUATE:
@@ -54,15 +50,25 @@ RAGScore - Generate QA datasets & evaluate RAG systems in 2 commands
 
   ragscore evaluate http://api/query              # Basic evaluation
   ragscore evaluate http://api/query --detailed   # 5-metric evaluation
+  ragscore evaluate http://api/query -g golden.jsonl  # Reuse saved QAs
   ragscore evaluate http://api/query -o out.json  # Save results to file
-  ragscore evaluate http://api/query -c 10        # Higher concurrency
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔄 GOLDEN QA REUSE (save LLM cost, deterministic CI/CD):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ragscore generate docs/ -o golden.jsonl         # Generate once
+  ragscore evaluate http://api/query -g golden.jsonl  # Reuse many times
+
+  # Python API:
+  quick_test(endpoint, docs="docs/", save_golden="golden.jsonl")
+  quick_test(endpoint, golden="golden.jsonl")     # No generation cost
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🌍 MULTILINGUAL (auto-detected):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   English, 中文, 日本語, Deutsch — auto-detected from document content.
-  Prompts, QA generation, and judging all adapt to the document language.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🤖 AI ASSISTANT INTEGRATION (MCP):
@@ -124,6 +130,12 @@ def generate(
         "--purpose",
         help="Document purpose (e.g. 'training', 'faq', 'compliance', 'fine-tuning')",
     ),
+    output: Optional[str] = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Save generated QAs to custom path (default: output/generated_qas.jsonl)",
+    ),
 ):
     """
     Generate QA pairs from your documents.
@@ -146,14 +158,13 @@ def generate(
       ragscore generate paper.pdf              # Single PDF
       ragscore generate file1.pdf file2.txt    # Multiple files
       ragscore generate ./my_docs/ -c 10       # Directory + concurrency
+      ragscore generate docs/ -o golden.jsonl  # Save to custom path
 
     \b
     Tailored QA (--audience / --purpose):
       ragscore generate docs/ --audience developers --purpose faq
       ragscore generate docs/ --audience customers --purpose "pre-sales"
       ragscore generate docs/ --audience auditors --purpose compliance
-      ragscore generate docs/ --audience "new hires" --purpose onboarding
-      ragscore generate docs/ --audience "support engineers" --purpose fine-tuning
 
     \b
     Local LLM (Ollama):
@@ -165,7 +176,8 @@ def generate(
 
     \b
     Output:
-      Generated QA pairs saved to: output/generated_qas.jsonl
+      Generated QA pairs saved to: output/generated_qas.jsonl (or --output path)
+      Reuse with: ragscore evaluate <endpoint> --golden golden.jsonl
 
     \b
     Need help? https://github.com/HZYAI/RagScore
@@ -189,6 +201,7 @@ def generate(
             model=model,
             audience=audience,
             purpose=purpose,
+            output_path=output,
         )
     except ValueError as e:
         typer.secho(f"\n❌ Configuration error: {e}", fg=typer.colors.RED)

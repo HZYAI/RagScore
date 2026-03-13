@@ -282,7 +282,7 @@ def create_mcp_server():
     @mcp.tool()
     async def quick_test_rag(
         endpoint: str,
-        docs_path: str,
+        docs_path: Optional[str] = None,
         num_questions: int = 10,
         threshold: float = 0.7,
         provider: Optional[str] = None,
@@ -290,15 +290,18 @@ def create_mcp_server():
         detailed: bool = False,
         audience: Optional[str] = None,
         purpose: Optional[str] = None,
+        golden: Optional[str] = None,
+        save_golden: Optional[str] = None,
     ) -> str:
         """
         Quick RAG accuracy test - generate QAs and evaluate in one call.
 
-        Perfect for rapid iteration and sanity checks.
+        Perfect for rapid iteration and sanity checks. Use 'golden' to
+        reuse pre-generated QA pairs (saves LLM cost, deterministic).
 
         Args:
             endpoint: RAG API endpoint URL
-            docs_path: Path to documents to generate test questions from
+            docs_path: Path to documents to generate test questions from. Required unless 'golden' is provided.
             num_questions: Number of test questions (default: 10)
             threshold: Pass/fail accuracy threshold (default: 0.7 = 70%)
             provider: LLM provider (openai, anthropic, ollama). Auto-detected if not set.
@@ -306,6 +309,8 @@ def create_mcp_server():
             detailed: Enable multi-metric evaluation (correctness, completeness, relevance, conciseness, faithfulness). Default: False.
             audience: Target audience (e.g. 'developers', 'customers'). Tailors generated questions.
             purpose: Document purpose (e.g. 'training', 'faq', 'compliance'). Focuses generated questions.
+            golden: Path to pre-generated QA pairs (JSONL). Skips generation, only queries RAG and judges.
+            save_golden: Path to save generated QA pairs for future reuse.
 
         Returns:
             Test results with pass/fail status and details
@@ -345,6 +350,8 @@ def create_mcp_server():
                 detailed=detailed,
                 audience=audience,
                 purpose=purpose,
+                golden=golden,
+                save_golden=save_golden,
             )
 
             # Save corrections so get_corrections() can retrieve them
