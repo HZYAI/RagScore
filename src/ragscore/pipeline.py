@@ -281,6 +281,20 @@ def run_pipeline(
 
     # --- 3. Save Results ---
     if not all_qas:
+        config.track_event(
+            "api_generate",
+            {
+                "version": __version__,
+                "python_version": platform.python_version(),
+                "os": platform.system(),
+                "provider": llm_provider.provider_name,
+                "model": llm_provider.model,
+                "has_audience": audience is not None,
+                "has_purpose": purpose is not None,
+                "concurrency": concurrency,
+                "success": True,
+            },
+        )
         print("\nNo QA pairs were generated.")
         return
 
