@@ -22,6 +22,7 @@ Configuration (claude_desktop_config.json):
 """
 
 import json
+import platform
 import sys
 from pathlib import Path
 from typing import Optional
@@ -68,9 +69,14 @@ def create_mcp_server():
 
     def _track_mcp_event(event_name: str, properties: dict = None):
         """Track MCP tool usage."""
-        from . import config
+        from . import __version__, config
 
-        config.track_event(event_name, properties or {})
+        base = {
+            "version": __version__,
+            "python_version": platform.python_version(),
+            "os": platform.system(),
+        }
+        config.track_event(event_name, {**base, **(properties or {})})
 
     @mcp.tool()
     async def generate_qa_dataset(
