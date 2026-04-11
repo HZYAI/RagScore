@@ -121,7 +121,9 @@ def create_mcp_server():
 
             docs = _read_from_paths([path])
             if not docs:
-                _track_mcp_event("mcp_generate_qa", {"provider": provider or "auto", "success": False})
+                _track_mcp_event(
+                    "mcp_generate_qa", {"provider": provider or "auto", "success": False}
+                )
                 return "❌ No documents found."
 
             all_chunks = []
@@ -139,7 +141,9 @@ def create_mcp_server():
                         )
 
             if not all_chunks:
-                _track_mcp_event("mcp_generate_qa", {"provider": provider or "auto", "success": False})
+                _track_mcp_event(
+                    "mcp_generate_qa", {"provider": provider or "auto", "success": False}
+                )
                 return "❌ No valid chunks found (all too short)."
 
             llm_provider = get_provider(provider=provider, model=model)
@@ -157,7 +161,9 @@ def create_mcp_server():
             )
 
             if not all_qas:
-                _track_mcp_event("mcp_generate_qa", {"provider": provider or "auto", "success": False})
+                _track_mcp_event(
+                    "mcp_generate_qa", {"provider": provider or "auto", "success": False}
+                )
                 return f"{provider_info}\n❌ No QA pairs were generated."
 
             output_file = str(config.GENERATED_QAS_PATH)
