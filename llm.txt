@@ -226,4 +226,4 @@ RAGScore collects telemetry **only in MCP server mode** (`ragscore serve`). Stan
 
 ## Version
 
-Current: 0.8.1
+Current: 0.8.2
