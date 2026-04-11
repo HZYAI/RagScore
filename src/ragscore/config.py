@@ -56,7 +56,7 @@ DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY")
 # --- Telemetry ---
 TELEMETRY_ENABLED = os.getenv("RAGSCORE_NO_TELEMETRY", "").lower() not in ("1", "true", "yes")
 POSTHOG_API_KEY = os.getenv("POSTHOG_API_KEY", "phc_19wLYHD0eHcMQel7WUBz2cXUHu22extqJXyqrXX9GuW")
-POSTHOG_HOST = os.getenv("POSTHOG_HOST", "https://app.posthog.com")
+POSTHOG_HOST = os.getenv("POSTHOG_HOST", "https://us.i.posthog.com")
 
 # Lazy-loaded PostHog client
 _posthog_client = None

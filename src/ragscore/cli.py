@@ -1,8 +1,18 @@
+import platform
 from typing import Optional
 
 import typer
 
 from . import __version__
+
+
+def _get_base_properties() -> dict:
+    """Return common telemetry properties included in every event."""
+    return {
+        "version": __version__,
+        "python_version": platform.python_version(),
+        "os": platform.system(),
+    }
 
 HELP_TEXT = """
 RAGScore - Generate QA datasets & evaluate RAG systems in 2 commands
@@ -183,6 +193,7 @@ def generate(
     Need help? https://github.com/HZYAI/RagScore
     """
 
+    from . import config
     from .pipeline import run_pipeline
 
     # Handle deprecated --docs-dir option
@@ -203,12 +214,32 @@ def generate(
             purpose=purpose,
             output_path=output,
         )
+        config.track_event(
+            "cli_generate",
+            {
+                **_get_base_properties(),
+                "provider": provider or "auto",
+                "model": model or "default",
+                "has_audience": audience is not None,
+                "has_purpose": purpose is not None,
+                "concurrency": concurrency,
+                "success": True,
+            },
+        )
     except ValueError as e:
+        config.track_event(
+            "cli_generate",
+            {**_get_base_properties(), "success": False, "error": "configuration_error"},
+        )
         typer.secho(f"\n❌ Configuration error: {e}", fg=typer.colors.RED)
         typer.secho("\n💡 Tip: Set your API key with:", fg=typer.colors.YELLOW)
         typer.secho("   export OPENAI_API_KEY='your-key-here'", fg=typer.colors.YELLOW)
         raise typer.Exit(code=1) from None
     except Exception as e:
+        config.track_event(
+            "cli_generate",
+            {**_get_base_properties(), "success": False, "error": type(e).__name__},
+        )
         typer.secho(f"\n❌ Error: {e}", fg=typer.colors.RED)
         raise typer.Exit(code=1) from e
 
@@ -264,11 +295,17 @@ def serve():
     \b
     Requires: pip install ragscore[mcp]
     """
+    from . import config
+
     try:
         from .mcp_server import run_server
 
+        config.track_event("cli_serve", {**_get_base_properties(), "success": True})
         run_server()
     except ImportError:
+        config.track_event(
+            "cli_serve", {**_get_base_properties(), "success": False, "error": "mcp_not_installed"}
+        )
         typer.secho(
             "\n❌ MCP not installed. Install with: pip install ragscore[mcp]",
             fg=typer.colors.RED,
@@ -358,13 +395,36 @@ def evaluate(
             provider=provider,
             detailed=detailed,
         )
+        config.track_event(
+            "cli_evaluate",
+            {
+                **_get_base_properties(),
+                "provider": provider or "auto",
+                "model": model or "default",
+                "detailed": detailed,
+                "concurrency": concurrency,
+                "success": True,
+            },
+        )
     except FileNotFoundError as e:
+        config.track_event(
+            "cli_evaluate",
+            {**_get_base_properties(), "success": False, "error": "file_not_found"},
+        )
         typer.secho(f"\n❌ File not found: {e}", fg=typer.colors.RED)
         raise typer.Exit(code=1) from None
     except ValueError as e:
+        config.track_event(
+            "cli_evaluate",
+            {**_get_base_properties(), "success": False, "error": "configuration_error"},
+        )
         typer.secho(f"\n❌ Configuration error: {e}", fg=typer.colors.RED)
         raise typer.Exit(code=1) from None
     except Exception as e:
+        config.track_event(
+            "cli_evaluate",
+            {**_get_base_properties(), "success": False, "error": type(e).__name__},
+        )
         typer.secho(f"\n❌ Error: {e}", fg=typer.colors.RED)
         raise typer.Exit(code=1) from e
 

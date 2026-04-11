@@ -379,7 +379,25 @@ pytest
 
 ---
 
-## 🔗 Links
+## � Telemetry
+
+RAGScore collects **anonymous usage data** to help us understand how the tool is used and improve it. No document content, QA text, API keys, or endpoint URLs are ever collected.
+
+**What is collected:**
+- Command run (`generate`, `evaluate`, `quick_test`)
+- LLM provider and model name
+- `ragscore` version, Python version, OS type
+- A random anonymous machine ID (non-reversible)
+
+**Opt out at any time:**
+
+```bash
+export RAGSCORE_NO_TELEMETRY=1
+```
+
+---
+
+## �� Links
 
 - [GitHub](https://github.com/HZYAI/RagScore) • [PyPI](https://pypi.org/project/ragscore/) • [Issues](https://github.com/HZYAI/RagScore/issues) • [Discussions](https://github.com/HZYAI/RagScore/discussions)
 

@@ -335,7 +335,25 @@ pytest
 
 ---
 
-## 🔗 リンク
+## � テレメトリ
+
+RAGScoreは、ツールの使用状況を把握し改善するために**匿名の使用データ**を収集します。ドキュメントの内容、QAテキスト、APIキー、エンドポイントURLは一切収集しません。
+
+**収集する情報：**
+- 実行したコマンド（`generate`、`evaluate`、`quick_test`）
+- LLMプロバイダーとモデル名
+- `ragscore`バージョン、Pythonバージョン、OS種別
+- ランダムな匿名マシンID（逆引き不可）
+
+**いつでもオプトアウト可能：**
+
+```bash
+export RAGSCORE_NO_TELEMETRY=1
+```
+
+---
+
+## �🔗 リンク
 
 - [GitHub](https://github.com/HZYAI/RagScore) • [PyPI](https://pypi.org/project/ragscore/) • [Issues](https://github.com/HZYAI/RagScore/issues) • [Discussions](https://github.com/HZYAI/RagScore/discussions)
 

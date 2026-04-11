@@ -310,7 +310,25 @@ pytest
 
 ---
 
-## 🔗 链接
+## � 遥测
+
+RAGScore 收集**匿名使用数据**，以帮助我们了解工具的使用方式并持续改进。我们**不会**收集任何文档内容、问答文本、API 密钥或端点 URL。
+
+**收集的内容：**
+- 运行的命令（`generate`、`evaluate`、`quick_test`）
+- LLM 提供商和模型名称
+- `ragscore` 版本、Python 版本、操作系统类型
+- 随机匿名机器 ID（不可逆）
+
+**随时选择退出：**
+
+```bash
+export RAGSCORE_NO_TELEMETRY=1
+```
+
+---
+
+## �🔗 链接
 
 - [GitHub](https://github.com/HZYAI/RagScore) • [PyPI](https://pypi.org/project/ragscore/) • [问题](https://github.com/HZYAI/RagScore/issues) • [讨论](https://github.com/HZYAI/RagScore/discussions)
 
