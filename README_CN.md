@@ -310,17 +310,20 @@ pytest
 
 ---
 
-## 遥测
+## 📡 遥测
 
-仅当通过 **MCP 服务器**（`ragscore serve`）使用 RAGScore 时，才会收集匿名使用数据，用于帮助我们了解 AI 助手集成模式。不会收集任何文档内容、问答文本、API 密钥或端点 URL。
+RAGScore **仅在 MCP 服务器模式**（`ragscore serve`）下收集遥测数据。标准 CLI 和 Python API 使用不发送遥测。
 
-**收集的内容（仅限 MCP）：**
-- 调用的 MCP 工具（`generate_qa_dataset`、`evaluate_rag`、`quick_test_rag`）
+我们收集有限的匿名操作指标，以了解功能使用情况并提高可靠性。不收集任何文档内容、提示词、问答文本、模型输出、API 密钥、端点 URL 或文件路径。
+
+**MCP 模式下收集的内容：**
+- 调用的 MCP 工具
 - LLM 提供商和模型名称
 - `ragscore` 版本、Python 版本、操作系统类型
-- 随机匿名机器 ID（不可逆）
+- 成功/失败状态
+- 随机匿名安装 ID
 
-**可以随时选择退出遥测：**
+**退出遥测：**
 
 ```bash
 export RAGSCORE_NO_TELEMETRY=1

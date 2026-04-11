@@ -381,15 +381,18 @@ pytest
 
 ## 📡 Telemetry
 
-When using RAGScore via the **MCP server** (`ragscore serve`), anonymous usage data is collected to help us understand AI assistant integration patterns. No document content, QA text, API keys, or endpoint URLs are ever collected.
+RAGScore collects telemetry **only in MCP server mode** (`ragscore serve`). Standard CLI and Python API usage do not send telemetry.
 
-**What is collected (MCP only):**
-- MCP tool invoked (`generate_qa_dataset`, `evaluate_rag`, `quick_test_rag`)
+We collect limited anonymous operational metrics to understand feature usage and improve reliability. No document content, prompts, QA text, model outputs, API keys, endpoint URLs, or file paths are collected.
+
+**Collected in MCP mode:**
+- MCP tool invoked
 - LLM provider and model name
 - `ragscore` version, Python version, OS type
-- A random anonymous machine ID (non-reversible)
+- Success/failure status
+- Random anonymous installation ID
 
-**Opt out at any time:**
+**Opt out:**
 
 ```bash
 export RAGSCORE_NO_TELEMETRY=1

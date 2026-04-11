@@ -111,18 +111,6 @@ def create_mcp_server():
         from .pipeline import _async_generate_qas, _read_from_paths
         from .providers import get_provider
 
-        # Track usage
-        _track_mcp_event(
-            "mcp_generate_qa",
-            {
-                "provider": provider or "auto",
-                "num_questions": num_questions,
-                "concurrency": concurrency,
-                "has_audience": bool(audience),
-                "has_purpose": bool(purpose),
-            },
-        )
-
         # Suppress stdout for MCP (it uses stdout for communication)
         old_stdout = sys.stdout
         sys.stdout = sys.stderr
@@ -133,6 +121,7 @@ def create_mcp_server():
 
             docs = _read_from_paths([path])
             if not docs:
+                _track_mcp_event("mcp_generate_qa", {"provider": provider or "auto", "success": False})
                 return "❌ No documents found."
 
             all_chunks = []
@@ -150,6 +139,7 @@ def create_mcp_server():
                         )
 
             if not all_chunks:
+                _track_mcp_event("mcp_generate_qa", {"provider": provider or "auto", "success": False})
                 return "❌ No valid chunks found (all too short)."
 
             llm_provider = get_provider(provider=provider, model=model)
@@ -167,6 +157,7 @@ def create_mcp_server():
             )
 
             if not all_qas:
+                _track_mcp_event("mcp_generate_qa", {"provider": provider or "auto", "success": False})
                 return f"{provider_info}\n❌ No QA pairs were generated."
 
             output_file = str(config.GENERATED_QAS_PATH)
@@ -174,8 +165,22 @@ def create_mcp_server():
                 for qa in all_qas:
                     f.write(json.dumps(qa, ensure_ascii=False) + "\n")
 
+            _track_mcp_event(
+                "mcp_generate_qa",
+                {
+                    "provider": llm_provider.provider_name,
+                    "model": llm_provider.model,
+                    "has_audience": bool(audience),
+                    "has_purpose": bool(purpose),
+                    "success": True,
+                },
+            )
             return f"{provider_info}\n✅ Generated {len(all_qas)} QA pairs. Saved to: {output_file}"
         except Exception as e:
+            _track_mcp_event(
+                "mcp_generate_qa",
+                {"provider": provider or "auto", "success": False, "error": type(e).__name__},
+            )
             return f"❌ Error: {e}"
         finally:
             sys.stdout = old_stdout
@@ -213,16 +218,6 @@ def create_mcp_server():
 
         if dataset_path is None:
             dataset_path = str(config.GENERATED_QAS_PATH)
-
-        # Track usage
-        _track_mcp_event(
-            "mcp_evaluate_rag",
-            {
-                "provider": provider or "auto",
-                "concurrency": concurrency,
-                "detailed": detailed,
-            },
-        )
 
         # Suppress stdout for MCP
         old_stdout = sys.stdout
@@ -279,8 +274,21 @@ def create_mcp_server():
             else:
                 result += "✅ All answers correct!"
 
+            _track_mcp_event(
+                "mcp_evaluate_rag",
+                {
+                    "provider": llm_provider.provider_name,
+                    "model": llm_provider.model,
+                    "detailed": detailed,
+                    "success": True,
+                },
+            )
             return result
         except Exception as e:
+            _track_mcp_event(
+                "mcp_evaluate_rag",
+                {"provider": provider or "auto", "success": False, "error": type(e).__name__},
+            )
             return f"❌ Error: {e}"
         finally:
             sys.stdout = old_stdout
@@ -324,17 +332,6 @@ def create_mcp_server():
         from . import config
         from .providers import get_provider
         from .quick_test import _quick_test_async
-
-        # Track usage
-        _track_mcp_event(
-            "mcp_quick_test",
-            {
-                "provider": provider or "auto",
-                "num_questions": num_questions,
-                "threshold": threshold,
-                "detailed": detailed,
-            },
-        )
 
         # Suppress stdout for MCP
         old_stdout = sys.stdout
@@ -398,8 +395,23 @@ def create_mcp_server():
                 output += f"🔧 {len(result.corrections)} corrections available.\n"
                 output += "Use get_corrections() to retrieve them.\n"
 
+            _track_mcp_event(
+                "mcp_quick_test",
+                {
+                    "provider": provider or "auto",
+                    "num_questions": num_questions,
+                    "threshold": threshold,
+                    "detailed": detailed,
+                    "reused_golden": golden is not None,
+                    "success": True,
+                },
+            )
             return output
         except Exception as e:
+            _track_mcp_event(
+                "mcp_quick_test",
+                {"provider": provider or "auto", "success": False, "error": type(e).__name__},
+            )
             return f"❌ Error: {e}"
         finally:
             sys.stdout = old_stdout
@@ -422,8 +434,7 @@ def create_mcp_server():
         """
         from . import config
 
-        # Track usage
-        _track_mcp_event("mcp_get_corrections", {})
+        _track_mcp_event("mcp_get_corrections", {"success": True})
 
         results_path = Path(config.OUTPUT_DIR) / "quick_test_corrections.jsonl"
 
