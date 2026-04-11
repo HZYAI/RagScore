@@ -67,6 +67,20 @@ def create_mcp_server():
 
     mcp = FastMCP("RAGScore")
 
+    def _validate_output_path(user_path: str) -> Path:
+        """Validate that an output path resolves within OUTPUT_DIR.
+
+        Prevents path-traversal attacks (e.g. ../../etc/cron.d/exploit).
+        Always resolve() first, then check is_relative_to().
+        """
+        from . import config
+
+        allowed = Path(config.OUTPUT_DIR).resolve()
+        resolved = (allowed / user_path).resolve()
+        if not resolved.is_relative_to(allowed):
+            raise ValueError(f"Output path must be within {allowed}. " f"Got: {user_path}")
+        return resolved
+
     def _track_mcp_event(event_name: str, properties: dict = None):
         """Track MCP tool usage."""
         from . import __version__, config
@@ -347,6 +361,8 @@ def create_mcp_server():
             qt_provider = get_provider(model=model) if model else None
             provider_info = _detect_provider_info(model=model)
 
+            validated_save_golden = str(_validate_output_path(save_golden)) if save_golden else None
+
             result = await _quick_test_async(
                 endpoint=endpoint,
                 docs=docs_path,
@@ -360,7 +376,7 @@ def create_mcp_server():
                 audience=audience,
                 purpose=purpose,
                 golden=golden,
-                save_golden=save_golden,
+                save_golden=validated_save_golden,
             )
 
             # Save corrections so get_corrections() can retrieve them
@@ -454,10 +470,12 @@ def create_mcp_server():
                     corrections.append(json.loads(line))
 
         if output_path:
-            with open(output_path, "w") as f:
+            safe_path = _validate_output_path(output_path)
+            safe_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(safe_path, "w") as f:
                 for c in corrections:
                     f.write(json.dumps(c, ensure_ascii=False) + "\n")
-            return f"✅ Saved {len(corrections)} corrections to: {output_path}"
+            return f"✅ Saved {len(corrections)} corrections to: {safe_path}"
 
         return json.dumps(corrections, indent=2, ensure_ascii=False)
 
