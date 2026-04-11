@@ -5,43 +5,52 @@
 ## What is RAGScore?
 
 RAGScore is an open-source Python tool that:
-1. **Generates QA pairs** from your documents (PDF, TXT, MD)
+1. **Generates QA pairs** from your documents (PDF, TXT, MD, HTML)
 2. **Evaluates RAG systems** using LLM-as-judge scoring
+3. **Runs one-liner audits** via `quick_test()` in notebooks or CI/CD
+4. **Integrates with AI assistants** via MCP server
 
 ## Quick Start
 
 ```bash
 pip install ragscore
 
-# Generate QA pairs from documents
+# Step 1: Generate QA pairs from documents
 ragscore generate docs/
 
-# Evaluate your RAG endpoint
+# Step 2: Evaluate your RAG endpoint
 ragscore evaluate http://localhost:8000/query
 ```
 
 ## Key Features
 
-- **Privacy-first**: Works with local LLMs (Ollama, vLLM) - data never leaves your machine
+- **Privacy-first**: Works with local LLMs (Ollama, vLLM) — data never leaves your machine
 - **Async & fast**: 5-10x faster with concurrent generation
 - **Any LLM**: OpenAI, Anthropic, Ollama, DashScope, Groq, Together, and more
 - **Zero config**: Auto-detects LLM from environment variables
-- **LLM-as-judge**: Scores RAG answers 1-5 with explanations
+- **LLM-as-judge**: Scores RAG answers 1–5 with explanations
+- **Multi-metric**: Correctness, completeness, relevance, conciseness, faithfulness
+- **Notebook-ready**: Works in Jupyter and Google Colab
+- **MCP server**: AI assistant integration (Claude Desktop, Cursor, etc.)
+- **Multilingual**: English, Chinese, Japanese, German (auto-detected)
 
 ## Project Structure
 
 ```
 src/ragscore/
-├── cli.py              # CLI commands (generate, evaluate)
+├── cli.py              # CLI commands (generate, evaluate, serve)
 ├── pipeline.py         # Async QA generation pipeline
+├── quick_test.py       # One-liner RAG evaluation for notebooks/CI
 ├── evaluation.py       # RAG evaluation with LLM-as-judge
+├── mcp_server.py       # MCP server for AI assistant integration
 ├── llm.py              # QA generation from text chunks
 ├── data_processing.py  # Document reading and chunking
 ├── providers/          # LLM provider implementations
-│   ├── base.py         # BaseLLMProvider abstract class
+│   ├── base.py
 │   ├── openai_provider.py
 │   ├── anthropic_provider.py
 │   ├── ollama_provider.py
+│   ├── dashscope_provider.py
 │   └── ...
 └── exceptions.py       # Custom exceptions
 ```
@@ -52,14 +61,17 @@ src/ragscore/
 Generate QA pairs from documents.
 
 ```bash
-ragscore generate <paths> [--concurrency 5]
+ragscore generate <paths> [options]
 ```
 
 Options:
 - `paths`: Files or directories to process
+- `--output, -o`: Save QAs to custom path (default: output/generated_qas.jsonl)
+- `--provider`: Force LLM provider (openai, ollama, anthropic, dashscope, etc.)
+- `--model`: Force specific model
+- `--audience`: Target audience for questions (e.g. "developers", "end users")
+- `--purpose`: Purpose of questions (e.g. "faq", "training", "compliance")
 - `--concurrency, -c`: Max concurrent LLM calls (default: 5)
-
-Output: `output/generated_qas.jsonl`
 
 ### `ragscore evaluate`
 Evaluate a RAG system against golden QA pairs.
@@ -72,26 +84,90 @@ Options:
 - `endpoint`: RAG API URL (positional, required)
 - `--golden, -g`: Path to golden QAs (default: output/generated_qas.jsonl)
 - `--output, -o`: Save results to JSON file
+- `--provider`: LLM provider for judging
 - `--model`: LLM model for judging
+- `--detailed`: Enable 5-metric evaluation (correctness, completeness, relevance, conciseness, faithfulness)
 - `--concurrency, -c`: Max concurrent calls (default: 5)
 - `--question-field`: JSON field for question (default: "question")
 - `--answer-field`: JSON field for answer (default: "answer")
 
+### `ragscore serve`
+Start MCP server for AI assistant integration.
+
+```bash
+ragscore serve
+```
+
+Requires: `pip install ragscore[mcp]`
+
 ## Python API
 
+### `quick_test()` — One-liner RAG evaluation
+
 ```python
-from ragscore import run_pipeline, run_evaluation
+from ragscore import quick_test
 
-# Generate QA pairs
-run_pipeline(paths=["docs/"], concurrency=10)
+# Pass an HTTP endpoint
+result = quick_test("http://localhost:8000/query", docs="docs/", n=20)
 
-# Evaluate RAG
-results = run_evaluation(
+# Or pass a Python function directly
+def my_rag(question):
+    return my_vectorstore.query(question)
+
+result = quick_test(my_rag, docs="docs/", n=20, threshold=0.8)
+
+print(f"Passed: {result.passed}")
+print(f"Accuracy: {result.accuracy:.0%}")
+result.plot()         # Radar chart (Jupyter/Colab)
+result.df             # pandas DataFrame
+result.corrections    # List of improvement suggestions
+```
+
+### Golden QA reuse (save LLM cost)
+
+```python
+# Generate and save golden QAs once
+result = quick_test(endpoint, docs="docs/", save_golden="golden.jsonl")
+
+# Reuse in future runs / CI
+result = quick_test(endpoint, golden="golden.jsonl", threshold=0.8)
+```
+
+### `run_pipeline()` — QA generation
+
+```python
+from ragscore import run_pipeline
+
+run_pipeline(
+    paths=["docs/"],
+    concurrency=10,
+    audience="developers",
+    purpose="faq",
+    output_path="output/qas.jsonl",
+)
+```
+
+### `run_evaluation()` — Evaluate RAG
+
+```python
+from ragscore import run_evaluation
+
+summary = run_evaluation(
     endpoint="http://localhost:8000/query",
     model="gpt-4o",
+    detailed=True,
 )
-print(f"Accuracy: {results.accuracy:.1%}")
+print(f"Accuracy: {summary.accuracy:.1%}")
 ```
+
+## MCP Server Tools
+
+When running `ragscore serve`, the following tools are exposed to AI assistants:
+
+- `generate_qa_dataset(path, ...)` — Generate QA pairs from a document path
+- `evaluate_rag(endpoint, ...)` — Evaluate a RAG endpoint
+- `quick_test_rag(endpoint, ...)` — One-shot generate + evaluate
+- `get_corrections()` — Retrieve improvement suggestions from last run
 
 ## Environment Variables
 
@@ -107,6 +183,10 @@ GROQ_API_KEY="..."
 
 # Custom OpenAI-compatible endpoint
 LLM_BASE_URL="http://localhost:8000/v1"
+OPENAI_MODEL_NAME="my-model"
+
+# Telemetry opt-out (MCP mode only)
+RAGSCORE_NO_TELEMETRY=1
 ```
 
 ## Output Formats
@@ -117,7 +197,6 @@ LLM_BASE_URL="http://localhost:8000/v1"
   "id": "abc123",
   "question": "What is RAG?",
   "answer": "RAG combines retrieval with generation...",
-  "difficulty": "medium",
   "source_path": "docs/intro.pdf"
 }
 ```
@@ -135,6 +214,10 @@ LLM_BASE_URL="http://localhost:8000/v1"
 }
 ```
 
+## Telemetry
+
+RAGScore collects telemetry **only in MCP server mode** (`ragscore serve`). Standard CLI and Python API usage do not send telemetry. Opt out: `export RAGSCORE_NO_TELEMETRY=1`
+
 ## Links
 
 - GitHub: https://github.com/HZYAI/RagScore
@@ -143,4 +226,4 @@ LLM_BASE_URL="http://localhost:8000/v1"
 
 ## Version
 
-Current: 0.5.2
+Current: 0.8.1
