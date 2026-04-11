@@ -337,7 +337,7 @@ pytest
 
 ## 📡 Telemetrie
 
-RAGScore erfasst Telemetrie **ausschließlich im MCP-Server-Modus** (`ragscore serve`). Standard-CLI und Python-API senden keine Telemetrie.
+RAGScore erfasst Telemetrie **ausschließlich im MCP-Server-Modus** (`ragscore serve`). Die Standard-CLI und Python-API-Nutzung sendet keine Telemetrie.
 
 Wir erfassen begrenzte anonyme Betriebsmetriken, um die Funktionsnutzung zu verstehen und die Zuverlässigkeit zu verbessern. Dokumente, Prompts, QA-Texte, Modellausgaben, API-Schlüssel, Endpunkt-URLs und Dateipfade werden niemals erfasst.
 
