@@ -335,12 +335,12 @@ pytest
 
 ---
 
-## � Telemetrie
+## 📡 Telemetrie
 
-RAGScore erfasst **anonyme Nutzungsdaten**, um die Verwendung des Tools zu verstehen und es kontinuierlich zu verbessern. Dokumente, QA-Texte, API-Schlüssel und Endpunkt-URLs werden **niemals** erfasst.
+Nur bei Verwendung von RAGScore über den **MCP-Server** (`ragscore serve`) werden anonyme Nutzungsdaten erfasst, um KI-Assistenten-Integrationsmuster zu verstehen. Dokumente, QA-Texte, API-Schlüssel und Endpunkt-URLs werden niemals erfasst.
 
-**Was erfasst wird:**
-- Ausgeführter Befehl (`generate`, `evaluate`, `quick_test`)
+**Was erfasst wird (nur MCP):**
+- Aufgerufenes MCP-Tool (`generate_qa_dataset`, `evaluate_rag`, `quick_test_rag`)
 - LLM-Anbieter und Modellname
 - `ragscore`-Version, Python-Version, Betriebssystemtyp
 - Zufällige anonyme Maschinen-ID (nicht umkehrbar)

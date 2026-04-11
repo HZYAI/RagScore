@@ -22,7 +22,6 @@ Usage:
 
 import asyncio
 import json
-import platform
 import random
 import sys
 from dataclasses import dataclass, field
@@ -853,8 +852,6 @@ def quick_test(
             result = quick_test(endpoint, golden="tests/golden.jsonl", threshold=0.8)
             assert result.passed, f"RAG accuracy too low: {result.accuracy:.0%}"
     """
-    from . import __version__, config
-
     # Get providers
     provider = None
     judge_provider = None
@@ -887,23 +884,6 @@ def quick_test(
             golden=golden,
             save_golden=save_golden,
         )
-    )
-
-    config.track_event(
-        "api_quick_test",
-        {
-            "version": __version__,
-            "python_version": platform.python_version(),
-            "os": platform.system(),
-            "n": n,
-            "detailed": detailed,
-            "has_audience": audience is not None,
-            "has_purpose": purpose is not None,
-            "reused_golden": golden is not None,
-            "saved_golden": save_golden is not None,
-            "endpoint_type": "callable" if callable(endpoint) else "http",
-            "success": True,
-        },
     )
 
     # Print summary unless silent

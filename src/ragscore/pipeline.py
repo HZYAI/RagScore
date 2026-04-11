@@ -1,6 +1,5 @@
 import asyncio
 import json
-import platform
 import random
 from pathlib import Path
 
@@ -281,20 +280,6 @@ def run_pipeline(
 
     # --- 3. Save Results ---
     if not all_qas:
-        config.track_event(
-            "api_generate",
-            {
-                "version": __version__,
-                "python_version": platform.python_version(),
-                "os": platform.system(),
-                "provider": llm_provider.provider_name,
-                "model": llm_provider.model,
-                "has_audience": audience is not None,
-                "has_purpose": purpose is not None,
-                "concurrency": concurrency,
-                "success": True,
-            },
-        )
         print("\nNo QA pairs were generated.")
         return
 
@@ -309,18 +294,3 @@ def run_pipeline(
     print(f"✅ Pipeline complete! Results saved to {save_path}")
     print("\n⭐ Enjoying RAGScore? Star us: https://github.com/HZYAI/RagScore")
     print("💬 Questions? Join discussions: https://github.com/HZYAI/RagScore/discussions")
-
-    config.track_event(
-        "api_generate",
-        {
-            "version": __version__,
-            "python_version": platform.python_version(),
-            "os": platform.system(),
-            "provider": llm_provider.provider_name,
-            "model": llm_provider.model,
-            "has_audience": audience is not None,
-            "has_purpose": purpose is not None,
-            "concurrency": concurrency,
-            "success": True,
-        },
-    )

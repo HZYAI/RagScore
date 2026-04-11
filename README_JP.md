@@ -335,12 +335,12 @@ pytest
 
 ---
 
-## � テレメトリ
+## 📡 テレメトリ
 
-RAGScoreは、ツールの使用状況を把握し改善するために**匿名の使用データ**を収集します。ドキュメントの内容、QAテキスト、APIキー、エンドポイントURLは一切収集しません。
+**MCPサーバー**（`ragscore serve`）経由でRAGScoreを使用する場合のみ、AIアシスタント連携パターンを把握するために匿名の使用データを収集します。ドキュメントの内容、QAテキスト、APIキー、エンドポイントURLは一切収集しません。
 
-**収集する情報：**
-- 実行したコマンド（`generate`、`evaluate`、`quick_test`）
+**収集する情報（MCPのみ）：**
+- 呼び出したMCPツール（`generate_qa_dataset`、`evaluate_rag`、`quick_test_rag`）
 - LLMプロバイダーとモデル名
 - `ragscore`バージョン、Pythonバージョン、OS種別
 - ランダムな匿名マシンID（逆引き不可）
