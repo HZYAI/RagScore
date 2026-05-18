@@ -189,6 +189,8 @@ ragscore evaluate http://localhost:8000/query --diagnose --detailed -o results.j
 | **Wrong Interpretation** | 检索正确但曲解了内容 |
 
 > 📓 [完整演示笔记本](examples/detailed_evaluation_demo.ipynb) — 构建迷你 RAG 并使用详细指标进行测试。
+>
+> 🇨🇳 [中文演示笔记本](examples/chinese_demo.ipynb) — 中文QA生成、受众定制与失败诊断。
 
 ---
 
