@@ -173,6 +173,35 @@ Schwellenwert: 70%
 ragscore evaluate http://localhost:8000/query --detailed
 ```
 
+### 🔍 Fehlerdiagnose (`--diagnose`)
+
+Wenn Antworten fehlschlagen, sagt `--diagnose` **warum** — Retriever-Miss, Generator-Halluzination, unvollständige Antwort oder Fehlinterpretation:
+
+```bash
+ragscore evaluate http://localhost:8000/query --diagnose
+```
+
+```
+🔍 Failure Diagnosis:
+  Retriever Miss: 3 (42.9%)
+  Generator Hallucination: 2 (28.6%)
+  Incomplete Answer: 1 (14.3%)
+  Wrong Interpretation: 1 (14.3%)
+```
+
+Nutzt den bei der QA-Generierung erzeugten `support_span` als Beweisgrundlage. Kombinierbar mit `--detailed`:
+
+```bash
+ragscore evaluate http://localhost:8000/query --diagnose --detailed -o results.json
+```
+
+| Kategorie | Bedeutung |
+|-----------|----------|
+| **Retriever Miss** | RAG hat den Chunk mit dem Beleg nicht abgerufen |
+| **Generator Hallucination** | Korrekt abgerufen, aber Informationen erfunden |
+| **Incomplete Answer** | Korrekt abgerufen, aber Antwort unvollständig |
+| **Wrong Interpretation** | Korrekt abgerufen, aber Inhalt falsch interpretiert |
+
 > 📓 [Vollständiges Demo-Notebook](examples/detailed_evaluation_demo.ipynb) — Mini-RAG erstellen und mit detaillierten Metriken testen.
 >
 > 🎯 [Zielgruppen- & Zweck-Demo](examples/audience_purpose_demo.ipynb) — QA-Generierung für Entwickler, Kunden, Prüfer und mehr.
@@ -293,6 +322,7 @@ ragscore evaluate http://api/query --output results.json
 | `ragscore generate <Pfade> --purpose <Warum>` | Zweckbezogene QA-Generierung |
 | `ragscore evaluate <Endpunkt>` | RAG gegen Referenz-QAs bewerten |
 | `ragscore evaluate <Endpunkt> --detailed` | Multi-Metrik-Bewertung |
+| `ragscore evaluate <Endpunkt> --diagnose` | Fehler-Ursachenklassifizierung |
 | `ragscore --help` | Alle Befehle und Optionen anzeigen |
 | `ragscore generate --help` | Generierungsoptionen anzeigen |
 | `ragscore evaluate --help` | Bewertungsoptionen anzeigen |

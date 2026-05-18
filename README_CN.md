@@ -159,6 +159,35 @@ result.plot()
 ragscore evaluate http://localhost:8000/query --detailed
 ```
 
+### 🔍 失败诊断 (`--diagnose`)
+
+当回答失败时，`--diagnose` 告诉你**为什么** — 检索缺失、生成器幻觉、回答不完整或错误解读：
+
+```bash
+ragscore evaluate http://localhost:8000/query --diagnose
+```
+
+```
+🔍 Failure Diagnosis:
+  Retriever Miss: 3 (42.9%)
+  Generator Hallucination: 2 (28.6%)
+  Incomplete Answer: 1 (14.3%)
+  Wrong Interpretation: 1 (14.3%)
+```
+
+利用 QA 生成时已产生的 `support_span` 为评判提供依据。可与 `--detailed` 组合使用：
+
+```bash
+ragscore evaluate http://localhost:8000/query --diagnose --detailed -o results.json
+```
+
+| 类别 | 含义 |
+|------|------|
+| **Retriever Miss** | RAG 未检索到包含证据的文档块 |
+| **Generator Hallucination** | 检索正确但生成了虚假信息 |
+| **Incomplete Answer** | 检索正确但回答不完整 |
+| **Wrong Interpretation** | 检索正确但曲解了内容 |
+
 > 📓 [完整演示笔记本](examples/detailed_evaluation_demo.ipynb) — 构建迷你 RAG 并使用详细指标进行测试。
 
 ---
@@ -268,6 +297,7 @@ ragscore evaluate http://api/query --output results.json
 | `ragscore generate <paths>` | 从文档生成问答对 |
 | `ragscore evaluate <endpoint>` | 对比黄金问答对评估 RAG |
 | `ragscore evaluate <endpoint> --detailed` | 多维度评估 |
+| `ragscore evaluate <endpoint> --diagnose` | 失败根因分类 |
 | `ragscore --help` | 显示所有命令和选项 |
 | `ragscore generate --help` | 显示生成选项 |
 | `ragscore evaluate --help` | 显示评估选项 |

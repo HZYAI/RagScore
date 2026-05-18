@@ -173,6 +173,35 @@ result.plot()
 ragscore evaluate http://localhost:8000/query --detailed
 ```
 
+### 🔍 失敗診断 (`--diagnose`)
+
+回答が失敗した時、`--diagnose` が**なぜ**かを教えます — 検索ミス、生成器ハルシネーション、不完全な回答、誤解釈：
+
+```bash
+ragscore evaluate http://localhost:8000/query --diagnose
+```
+
+```
+🔍 Failure Diagnosis:
+  Retriever Miss: 3 (42.9%)
+  Generator Hallucination: 2 (28.6%)
+  Incomplete Answer: 1 (14.3%)
+  Wrong Interpretation: 1 (14.3%)
+```
+
+QA生成時に產出された `support_span` を利用して判定に根拠を提供。`--detailed` と組み合わせ可能：
+
+```bash
+ragscore evaluate http://localhost:8000/query --diagnose --detailed -o results.json
+```
+
+| カテゴリ | 意味 |
+|----------|------|
+| **Retriever Miss** | RAGが証拠を含むチャンクを検索できなかった |
+| **Generator Hallucination** | 正しく検索したが情報を捏造した |
+| **Incomplete Answer** | 正しく検索したが回答が不完全 |
+| **Wrong Interpretation** | 正しく検索したが内容を誤解した |
+
 > 📓 [完全なデモノートブック](examples/detailed_evaluation_demo.ipynb) — ミニRAGを構築し、詳細指標でテスト。
 >
 > 🎯 [対象読者・目的デモ](examples/audience_purpose_demo.ipynb) — 開発者、顧客、監査人向けのQA生成。
@@ -293,6 +322,7 @@ ragscore evaluate http://api/query --output results.json
 | `ragscore generate <paths> --purpose <目的>` | ドキュメントの目的に合わせたQA生成 |
 | `ragscore evaluate <endpoint>` | ゴールデンQAペアに対してRAGを評価 |
 | `ragscore evaluate <endpoint> --detailed` | マルチメトリクス評価 |
+| `ragscore evaluate <endpoint> --diagnose` | 失敗根本原因分類 |
 | `ragscore --help` | すべてのコマンドとオプションを表示 |
 | `ragscore generate --help` | 生成オプションを表示 |
 | `ragscore evaluate --help` | 評価オプションを表示 |
