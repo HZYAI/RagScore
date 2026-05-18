@@ -5,6 +5,17 @@ All notable changes to RAGScore will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.3] - 2026-05-18
+
+### Added
+- **`--diagnose` flag for failure root-cause classification** — identifies *why* each answer failed
+  - Categories: `retriever_miss`, `generator_hallucination`, `incomplete_answer`, `wrong_interpretation`
+  - Uses `support_span` (already generated per QA pair) to give the judge grounding context
+  - CLI: `ragscore evaluate <endpoint> --diagnose`
+  - Works standalone or combined with `--detailed`
+  - Diagnosis summary printed in terminal + included in JSON output
+  - Multilingual diagnosis prompts (English, Chinese, Japanese, German)
+
 ## [0.8.2] - 2026-04-11
 
 ### Security

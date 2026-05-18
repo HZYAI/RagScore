@@ -309,6 +309,11 @@ def evaluate(
         "--detailed",
         help="Enable multi-metric evaluation (correctness, completeness, relevance, conciseness, faithfulness)",
     ),
+    diagnose: bool = typer.Option(
+        False,
+        "--diagnose",
+        help="Enable failure diagnosis: classify each error as retriever_miss, generator_hallucination, incomplete_answer, or wrong_interpretation (requires support_span in golden QAs)",
+    ),
 ):
     """
     Evaluate your RAG system against golden QA pairs.
@@ -357,6 +362,7 @@ def evaluate(
             model=model,
             provider=provider,
             detailed=detailed,
+            diagnose=diagnose,
         )
     except FileNotFoundError as e:
         typer.secho(f"\n❌ File not found: {e}", fg=typer.colors.RED)

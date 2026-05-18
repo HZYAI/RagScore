@@ -41,6 +41,8 @@ class EvaluationResult:
     relevance: Optional[int] = None
     conciseness: Optional[int] = None
     faithfulness: Optional[int] = None
+    support_span: Optional[str] = None
+    failure_category: Optional[str] = None
 
     def to_dict(self) -> dict[str, Any]:
         d = {
@@ -56,6 +58,10 @@ class EvaluationResult:
             val = getattr(self, metric, None)
             if val is not None:
                 d[metric] = val
+        if self.support_span is not None:
+            d["support_span"] = self.support_span
+        if self.failure_category is not None:
+            d["failure_category"] = self.failure_category
         return d
 
 
@@ -72,7 +78,7 @@ class EvaluationSummary:
 
     def to_dict(self) -> dict[str, Any]:
         incorrect_pairs = [r.to_dict() for r in self.results if not r.is_correct]
-        return {
+        result = {
             "summary": {
                 "total": self.total,
                 "correct": self.correct,
@@ -82,6 +88,16 @@ class EvaluationSummary:
             },
             "incorrect_pairs": incorrect_pairs,
         }
+        diagnosed = [r for r in self.results if r.failure_category]
+        if diagnosed:
+            category_counts = {}
+            for r in diagnosed:
+                category_counts[r.failure_category] = category_counts.get(r.failure_category, 0) + 1
+            result["diagnosis"] = {
+                "total_diagnosed": len(diagnosed),
+                "categories": category_counts,
+            }
+        return result
 
 
 class RAGClient:
@@ -334,23 +350,90 @@ Score each dimension 1-5:
 Output JSON: {{"score": N, "reason": "brief explanation", "correctness": N, "completeness": N, "relevance": N, "conciseness": N, "faithfulness": N}}"""
 
 
+_FAILURE_CATEGORIES = [
+    "retriever_miss",
+    "generator_hallucination",
+    "incomplete_answer",
+    "wrong_interpretation",
+    "correct",
+]
+
+
+def _build_diagnosis_appendix(support_span: str, lang: str) -> str:
+    """Build diagnosis context to append to judge prompt when diagnose mode is enabled."""
+    if lang == "zh":
+        return f"""
+
+--- 诊断信息 ---
+原始支持证据（来自源文档）: \"{support_span}\"
+
+请额外在JSON中添加 \"failure_category\" 字段，分析RAG回答的失败原因:
+- \"correct\": 回答正确，无需诊断
+- \"retriever_miss\": RAG系统未能检索到包含上述支持证据的相关内容
+- \"generator_hallucination\": 生成器编造了源文档中不存在的信息
+- \"incomplete_answer\": 回答不完整，遗漏了支持证据中的关键信息
+- \"wrong_interpretation\": 回答曲解或错误解释了源文档中的信息"""
+    elif lang == "ja":
+        return f"""
+
+--- 診断情報 ---
+元の根拠（ソース文書より）: \"{support_span}\"
+
+追加で \"failure_category\" フィールドをJSONに含めて、RAG回答の失敗原因を分類してください:
+- \"correct\": 回答は正確、診断不要
+- \"retriever_miss\": RAGシステムが上記の根拠を含むコンテンツを取得できなかった
+- \"generator_hallucination\": ソース文書にない情報を生成器が捏造した
+- \"incomplete_answer\": 回答が不完全で、根拠の重要な情報が欠落している
+- \"wrong_interpretation\": ソース文書の情報を誤解または誤って解釈した"""
+    elif lang == "de":
+        return f"""
+
+--- Diagnoseinformationen ---
+Originaler Beleg (aus dem Quelldokument): \"{support_span}\"
+
+Fügen Sie zusätzlich ein \"failure_category\"-Feld zum JSON hinzu, um die Fehlerursache der RAG-Antwort zu klassifizieren:
+- \"correct\": Antwort ist korrekt, keine Diagnose erforderlich
+- \"retriever_miss\": Das RAG-System hat den Inhalt mit dem obigen Beleg nicht abgerufen
+- \"generator_hallucination\": Der Generator hat Informationen erfunden, die nicht im Quelldokument stehen
+- \"incomplete_answer\": Die Antwort ist unvollständig, wichtige Informationen aus dem Beleg fehlen
+- \"wrong_interpretation\": Informationen aus dem Quelldokument wurden falsch interpretiert"""
+    else:
+        return f"""
+
+--- Diagnosis Context ---
+Original Supporting Evidence (from source document): \"{support_span}\"
+
+Additionally, add a \"failure_category\" field to your JSON output to classify the root cause:
+- \"correct\": Answer is correct, no diagnosis needed
+- \"retriever_miss\": The RAG system failed to retrieve content containing the supporting evidence above
+- \"generator_hallucination\": The generator fabricated information not present in the source document
+- \"incomplete_answer\": The answer is incomplete, missing key information from the supporting evidence
+- \"wrong_interpretation\": The answer misinterpreted or incorrectly explained information from the source document"""
+
+
 async def _judge_single(
     qa: dict[str, Any],
     rag_answer: str,
     provider,
     semaphore: asyncio.Semaphore,
     detailed: bool = False,
+    diagnose: bool = False,
 ) -> EvaluationResult:
     """Judge a single QA pair."""
     question = qa.get("question", "")
     golden_answer = qa.get("answer", "")
     qa_id = qa.get("id", "unknown")
+    support_span = qa.get("support_span")
 
     # Detect language from question
     lang = detect_language(question)
 
     # Build judge prompt
     user_prompt = _build_judge_prompt(question, golden_answer, rag_answer, lang, detailed=detailed)
+
+    # Append diagnosis context if enabled and support_span is available
+    if diagnose and support_span:
+        user_prompt += _build_diagnosis_appendix(support_span, lang)
 
     system_prompt = (
         "You are an impartial judge evaluating RAG system answers. "
@@ -385,6 +468,13 @@ async def _judge_single(
             if val is not None:
                 metric_kwargs[metric] = max(1, min(5, int(val)))
 
+    # Extract diagnosis fields
+    failure_category = None
+    if diagnose:
+        raw_cat = data.get("failure_category", "").lower().strip()
+        if raw_cat in _FAILURE_CATEGORIES:
+            failure_category = raw_cat
+
     return EvaluationResult(
         id=qa_id,
         question=question,
@@ -393,6 +483,8 @@ async def _judge_single(
         score=score,
         reason=reason,
         is_correct=(score >= 4),
+        support_span=support_span if diagnose else None,
+        failure_category=failure_category,
         **metric_kwargs,
     )
 
@@ -404,6 +496,7 @@ async def evaluate_rag(
     concurrency: int = 5,
     correct_threshold: int = 4,
     detailed: bool = False,
+    diagnose: bool = False,
 ) -> EvaluationSummary:
     """
     Evaluate RAG system against golden QA pairs.
@@ -415,6 +508,7 @@ async def evaluate_rag(
         concurrency: Max concurrent requests (default: 5)
         correct_threshold: Score threshold for "correct" (default: 4)
         detailed: Enable multi-metric evaluation (default: False)
+        diagnose: Enable failure diagnosis using support_span (default: False)
 
     Returns:
         EvaluationSummary with results and incorrect pairs
@@ -440,7 +534,9 @@ async def evaluate_rag(
                     rag_answer = f"[ERROR: {e}]"
 
             # Immediately judge the answer
-            return await _judge_single(qa, rag_answer, provider, semaphore, detailed=detailed)
+            return await _judge_single(
+                qa, rag_answer, provider, semaphore, detailed=detailed, diagnose=diagnose
+            )
 
         tasks = [process_qa(qa) for qa in golden_qas]
         async_pbar = get_async_pbar()
@@ -507,6 +603,7 @@ def run_evaluation(
     model: Optional[str] = None,
     provider: Optional[str] = None,
     detailed: bool = False,
+    diagnose: bool = False,
 ) -> EvaluationSummary:
     """
     Run RAG evaluation pipeline (synchronous wrapper).
@@ -523,6 +620,7 @@ def run_evaluation(
         model: LLM model for judging (auto-detected if None)
         provider: LLM provider for judging (e.g., 'ollama', 'openai'). Auto-detected if None.
         detailed: Enable multi-metric evaluation (default: False)
+        diagnose: Enable failure diagnosis using support_span (default: False)
 
     Returns:
         EvaluationSummary with results
@@ -561,6 +659,7 @@ def run_evaluation(
             provider=llm_provider,
             concurrency=concurrency,
             detailed=detailed,
+            diagnose=diagnose,
         )
     )
 
@@ -590,6 +689,25 @@ def run_evaluation(
                 label = metric.replace("_", " ").title()
                 print(f"  {label}: {avg:.2f}/5.0")
 
+    if diagnose and summary.results:
+        separator = "\u2500" * 60
+        print(separator)
+        print("\U0001f50d Failure Diagnosis:")
+        category_counts = {}
+        diagnosed = [r for r in summary.results if r.failure_category]
+        for r in diagnosed:
+            category_counts[r.failure_category] = category_counts.get(r.failure_category, 0) + 1
+        if category_counts:
+            for cat in _FAILURE_CATEGORIES:
+                count = category_counts.get(cat, 0)
+                if count > 0:
+                    pct = count / len(diagnosed) * 100
+                    label = cat.replace("_", " ").title()
+                    print(f"  {label}: {count} ({pct:.1f}%)")
+        no_span = sum(1 for r in summary.results if not r.support_span)
+        if no_span > 0:
+            print(f"  \u26a0\ufe0f  {no_span} QA pairs had no support_span (diagnosis skipped)")
+
     print(f"{'=' * 60}")
 
     # Print incorrect pairs
@@ -600,6 +718,9 @@ def run_evaluation(
             q_preview = r.question[:60] + "..." if len(r.question) > 60 else r.question
             print(f'  {i}. Q: "{q_preview}"')
             print(f"     Score: {r.score}/5 - {r.reason}")
+            if r.failure_category:
+                cat_label = r.failure_category.replace("_", " ").title()
+                print(f"     Diagnosis: {cat_label}")
             print()
 
         if len(incorrect) > 10:
