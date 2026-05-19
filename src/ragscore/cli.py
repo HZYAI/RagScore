@@ -331,7 +331,9 @@ def evaluate(
     Examples:
       ragscore evaluate http://localhost:8000/query
       ragscore evaluate http://api/ask --detailed
-      ragscore evaluate http://api/ask -o results.json
+      ragscore evaluate http://api/ask --diagnose
+      ragscore evaluate http://api/ask --diagnose --detailed -o results.json
+      ragscore evaluate http://api/ask --context-fields sources,chunks
       ragscore evaluate http://api/ask -c 10 --model gpt-4o
       ragscore evaluate http://api/ask --golden custom_qas.jsonl
       ragscore evaluate http://api/ask --question-field q --answer-field a
@@ -342,11 +344,18 @@ def evaluate(
       correctness, completeness, relevance, conciseness, faithfulness
 
     \b
+    Diagnose mode (--diagnose):
+      Classifies each incorrect answer's root cause:
+      retriever_miss, generator_hallucination, incomplete_answer, wrong_interpretation
+      Uses support_span from golden QAs + retrieved context from endpoint.
+
+    \b
     How it works:
       1. Load QA pairs from output/generated_qas.jsonl (or --golden path)
       2. Query your RAG endpoint with each question
-      3. Score answers using LLM-as-judge (1-5 scale)
-      4. Show results + incorrect pairs in terminal
+      3. Capture retrieved context from response (auto-detected or --context-fields)
+      4. Score answers using LLM-as-judge (1-5 scale)
+      5. Show results + incorrect pairs in terminal
     """
     from . import config
     from .evaluation import run_evaluation

@@ -213,6 +213,8 @@ def create_mcp_server():
         provider: Optional[str] = None,
         model: Optional[str] = None,
         detailed: bool = False,
+        diagnose: bool = False,
+        context_fields: Optional[str] = None,
     ) -> str:
         """
         Evaluate a RAG API endpoint against a QA dataset.
@@ -227,6 +229,8 @@ def create_mcp_server():
             provider: LLM provider for judging (openai, anthropic, ollama). Auto-detected if not set.
             model: LLM model for judging (e.g. gpt-4o-mini). Uses provider default if not set.
             detailed: Enable multi-metric evaluation (correctness, completeness, relevance, conciseness, faithfulness). Default: False.
+            diagnose: Enable failure diagnosis — classifies each error as retriever_miss, generator_hallucination, incomplete_answer, or wrong_interpretation. Default: False.
+            context_fields: Comma-separated field names to capture retrieved context from RAG response (e.g. 'sources,context'). Auto-detected if not set.
 
         Returns:
             Evaluation summary with accuracy and incorrect pairs
@@ -245,7 +249,8 @@ def create_mcp_server():
 
         try:
             golden_qas = load_golden_qas(dataset_path)
-            rag_client = RAGClient(endpoint=endpoint)
+            ctx_fields = [f.strip() for f in context_fields.split(",")] if context_fields else None
+            rag_client = RAGClient(endpoint=endpoint, context_fields=ctx_fields)
             llm_provider = get_provider(provider=provider, model=model)
             provider_info = _detect_provider_info(provider=provider, model=model)
 
@@ -255,6 +260,7 @@ def create_mcp_server():
                 provider=llm_provider,
                 concurrency=concurrency,
                 detailed=detailed,
+                diagnose=diagnose,
             )
 
             result = f"""{provider_info}
@@ -284,6 +290,30 @@ def create_mcp_server():
                         result += f"- {label}: {avg:.1f}/5.0\n"
                 result += "\n"
 
+            if diagnose and summary.results:
+                from .evaluation import _FAILURE_CATEGORIES
+
+                diagnosed = [r for r in summary.results if r.failure_category]
+                if diagnosed:
+                    result += "🔍 Failure Diagnosis:\n"
+                    category_counts = {}
+                    for r in diagnosed:
+                        category_counts[r.failure_category] = (
+                            category_counts.get(r.failure_category, 0) + 1
+                        )
+                    for cat in _FAILURE_CATEGORIES:
+                        count = category_counts.get(cat, 0)
+                        if count > 0:
+                            pct = count / len(diagnosed) * 100
+                            label = cat.replace("_", " ").title()
+                            result += f"  {label}: {count} ({pct:.1f}%)\n"
+                    has_ctx = sum(1 for r in summary.results if r.retrieved_context)
+                    if has_ctx > 0:
+                        result += (
+                            f"  📦 Context captured: {has_ctx}/{len(summary.results)} queries\n"
+                        )
+                    result += "\n"
+
             if summary.incorrect > 0:
                 result += f"❌ {summary.incorrect} incorrect answers found.\n"
                 # Show first 3 failures
@@ -291,6 +321,8 @@ def create_mcp_server():
                 for r in incorrect:
                     result += f"\nQ: {r.question[:80]}...\n"
                     result += f"   Score: {r.score}/5 - {r.reason}\n"
+                    if r.failure_category:
+                        result += f"   Diagnosis: {r.failure_category.replace('_', ' ').title()}\n"
             else:
                 result += "✅ All answers correct!"
 
