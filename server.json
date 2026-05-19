@@ -2,17 +2,17 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.HZYAI/ragscore",
   "title": "RAGScore",
-  "description": "Generate QA datasets & evaluate RAG systems. Privacy-first, any LLM, local or cloud.",
+  "description": "Generate QA datasets & evaluate RAG systems with failure diagnosis. Any LLM.",
   "repository": {
     "url": "https://github.com/HZYAI/RagScore",
     "source": "github"
   },
-  "version": "0.6.10",
+  "version": "0.8.5",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "ragscore",
-      "version": "0.6.10",
+      "version": "0.8.5",
       "transport": {
         "type": "stdio"
       },
