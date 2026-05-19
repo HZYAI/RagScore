@@ -314,6 +314,11 @@ def evaluate(
         "--diagnose",
         help="Enable failure diagnosis: classify each error as retriever_miss, generator_hallucination, incomplete_answer, or wrong_interpretation (requires support_span in golden QAs)",
     ),
+    context_fields: Optional[str] = typer.Option(
+        None,
+        "--context-fields",
+        help="Comma-separated field names to capture retrieved context from RAG response (e.g., 'sources,context'). Auto-detected if not set.",
+    ),
 ):
     """
     Evaluate your RAG system against golden QA pairs.
@@ -363,6 +368,9 @@ def evaluate(
             provider=provider,
             detailed=detailed,
             diagnose=diagnose,
+            context_fields=(
+                [f.strip() for f in context_fields.split(",")] if context_fields else None
+            ),
         )
     except FileNotFoundError as e:
         typer.secho(f"\n❌ File not found: {e}", fg=typer.colors.RED)

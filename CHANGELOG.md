@@ -5,6 +5,16 @@ All notable changes to RAGScore will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.4] - 2026-05-19
+
+### Added
+- **Capture retrieved context from RAG endpoint** — `RAGClient` now extracts retrieved chunks/sources from the API response
+  - Auto-detects common field names: `sources`, `context`, `documents`, `chunks`, `references`, `source_documents`
+  - CLI: `--context-fields` flag for custom field names (comma-separated)
+  - Retrieved context is passed to the judge prompt for more accurate `--diagnose` classification
+  - Context included in JSON output (`retrieved_context` field per result, `retrieved_context_captured` count in diagnosis summary)
+  - Graceful degradation: diagnosis still works (via `support_span` only) when endpoint returns no context
+
 ## [0.8.3] - 2026-05-18
 
 ### Added

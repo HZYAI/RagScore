@@ -43,6 +43,7 @@ class EvaluationResult:
     faithfulness: Optional[int] = None
     support_span: Optional[str] = None
     failure_category: Optional[str] = None
+    retrieved_context: Optional[str] = None
 
     def to_dict(self) -> dict[str, Any]:
         d = {
@@ -62,6 +63,8 @@ class EvaluationResult:
             d["support_span"] = self.support_span
         if self.failure_category is not None:
             d["failure_category"] = self.failure_category
+        if self.retrieved_context is not None:
+            d["retrieved_context"] = self.retrieved_context
         return d
 
 
@@ -93,15 +96,26 @@ class EvaluationSummary:
             category_counts = {}
             for r in diagnosed:
                 category_counts[r.failure_category] = category_counts.get(r.failure_category, 0) + 1
+            has_ctx = sum(1 for r in self.results if r.retrieved_context)
             result["diagnosis"] = {
                 "total_diagnosed": len(diagnosed),
                 "categories": category_counts,
+                "retrieved_context_captured": has_ctx,
             }
         return result
 
 
 class RAGClient:
     """Client for calling RAG endpoints."""
+
+    _DEFAULT_CONTEXT_FIELDS = [
+        "sources",
+        "context",
+        "documents",
+        "chunks",
+        "references",
+        "source_documents",
+    ]
 
     def __init__(
         self,
@@ -111,6 +125,7 @@ class RAGClient:
         answer_field: str = "answer",
         headers: Optional[dict[str, str]] = None,
         timeout: int = 30,
+        context_fields: Optional[list[str]] = None,
     ):
         """
         Initialize RAG client.
@@ -122,6 +137,8 @@ class RAGClient:
             answer_field: Field name for answer in response
             headers: Optional HTTP headers
             timeout: Request timeout in seconds
+            context_fields: Field names to look for retrieved context in RAG response.
+                            Auto-detected from common names if None.
         """
         self.endpoint = endpoint
         self.method = method.upper()
@@ -129,8 +146,11 @@ class RAGClient:
         self.answer_field = answer_field
         self.headers = headers or {"Content-Type": "application/json"}
         self.timeout = aiohttp.ClientTimeout(total=timeout)
+        self.context_fields = context_fields or self._DEFAULT_CONTEXT_FIELDS
 
-    async def query(self, question: str, session: aiohttp.ClientSession) -> str:
+    async def query(
+        self, question: str, session: aiohttp.ClientSession
+    ) -> tuple[str, Optional[str]]:
         """
         Query the RAG endpoint with a question.
 
@@ -139,7 +159,7 @@ class RAGClient:
             session: aiohttp session for connection pooling
 
         Returns:
-            The RAG system's answer
+            Tuple of (answer, retrieved_context). Context is None if not found.
         """
         try:
             if self.method == "POST":
@@ -166,7 +186,33 @@ class RAGClient:
                         answer = data[alt_field]
                         break
 
-            return str(answer) if answer else ""
+            # Extract retrieved context from response
+            retrieved_context = None
+            if isinstance(data, dict):
+                for ctx_field in self.context_fields:
+                    ctx_val = data.get(ctx_field)
+                    if ctx_val:
+                        if isinstance(ctx_val, list):
+                            # Join list items — handle dicts (e.g. {"page_content": ...}) and strings
+                            parts = []
+                            for item in ctx_val:
+                                if isinstance(item, dict):
+                                    parts.append(
+                                        item.get("page_content")
+                                        or item.get("text")
+                                        or item.get("content")
+                                        or str(item)
+                                    )
+                                else:
+                                    parts.append(str(item))
+                            retrieved_context = "\n\n".join(parts)
+                        elif isinstance(ctx_val, str):
+                            retrieved_context = ctx_val
+                        else:
+                            retrieved_context = str(ctx_val)
+                        break
+
+            return (str(answer) if answer else "", retrieved_context)
 
         except aiohttp.ClientError as e:
             raise RAGScoreError(f"RAG endpoint error: {e}") from e
@@ -359,14 +405,17 @@ _FAILURE_CATEGORIES = [
 ]
 
 
-def _build_diagnosis_appendix(support_span: str, lang: str) -> str:
+def _build_diagnosis_appendix(
+    support_span: str, lang: str, retrieved_context: Optional[str] = None
+) -> str:
     """Build diagnosis context to append to judge prompt when diagnose mode is enabled."""
+    ctx_section = _build_retrieved_context_section(retrieved_context, lang)
     if lang == "zh":
         return f"""
 
 --- 诊断信息 ---
 原始支持证据（来自源文档）: \"{support_span}\"
-
+{ctx_section}
 请额外在JSON中添加 \"failure_category\" 字段，分析RAG回答的失败原因:
 - \"correct\": 回答正确，无需诊断
 - \"retriever_miss\": RAG系统未能检索到包含上述支持证据的相关内容
@@ -378,7 +427,7 @@ def _build_diagnosis_appendix(support_span: str, lang: str) -> str:
 
 --- 診断情報 ---
 元の根拠（ソース文書より）: \"{support_span}\"
-
+{ctx_section}
 追加で \"failure_category\" フィールドをJSONに含めて、RAG回答の失敗原因を分類してください:
 - \"correct\": 回答は正確、診断不要
 - \"retriever_miss\": RAGシステムが上記の根拠を含むコンテンツを取得できなかった
@@ -390,7 +439,7 @@ def _build_diagnosis_appendix(support_span: str, lang: str) -> str:
 
 --- Diagnoseinformationen ---
 Originaler Beleg (aus dem Quelldokument): \"{support_span}\"
-
+{ctx_section}
 Fügen Sie zusätzlich ein \"failure_category\"-Feld zum JSON hinzu, um die Fehlerursache der RAG-Antwort zu klassifizieren:
 - \"correct\": Antwort ist korrekt, keine Diagnose erforderlich
 - \"retriever_miss\": Das RAG-System hat den Inhalt mit dem obigen Beleg nicht abgerufen
@@ -402,13 +451,32 @@ Fügen Sie zusätzlich ein \"failure_category\"-Feld zum JSON hinzu, um die Fehl
 
 --- Diagnosis Context ---
 Original Supporting Evidence (from source document): \"{support_span}\"
-
+{ctx_section}
 Additionally, add a \"failure_category\" field to your JSON output to classify the root cause:
 - \"correct\": Answer is correct, no diagnosis needed
 - \"retriever_miss\": The RAG system failed to retrieve content containing the supporting evidence above
 - \"generator_hallucination\": The generator fabricated information not present in the source document
 - \"incomplete_answer\": The answer is incomplete, missing key information from the supporting evidence
 - \"wrong_interpretation\": The answer misinterpreted or incorrectly explained information from the source document"""
+
+
+def _build_retrieved_context_section(retrieved_context: Optional[str], lang: str) -> str:
+    """Build the retrieved context section for the diagnosis appendix."""
+    if not retrieved_context:
+        return ""
+    # Truncate very long contexts to avoid exceeding token limits
+    max_len = 2000
+    ctx_preview = retrieved_context[:max_len]
+    if len(retrieved_context) > max_len:
+        ctx_preview += "..."
+    if lang == "zh":
+        return f'\nRAG系统实际检索到的内容:\n"""{ctx_preview}"""'
+    elif lang == "ja":
+        return f'\nRAGシステムが実際に取得したコンテンツ:\n"""{ctx_preview}"""'
+    elif lang == "de":
+        return f'\nVom RAG-System tatsächlich abgerufener Inhalt:\n"""{ctx_preview}"""'
+    else:
+        return f'\nRetrieved Context (from RAG system):\n"""{ctx_preview}"""'
 
 
 async def _judge_single(
@@ -418,6 +486,7 @@ async def _judge_single(
     semaphore: asyncio.Semaphore,
     detailed: bool = False,
     diagnose: bool = False,
+    retrieved_context: Optional[str] = None,
 ) -> EvaluationResult:
     """Judge a single QA pair."""
     question = qa.get("question", "")
@@ -433,7 +502,7 @@ async def _judge_single(
 
     # Append diagnosis context if enabled and support_span is available
     if diagnose and support_span:
-        user_prompt += _build_diagnosis_appendix(support_span, lang)
+        user_prompt += _build_diagnosis_appendix(support_span, lang, retrieved_context)
 
     system_prompt = (
         "You are an impartial judge evaluating RAG system answers. "
@@ -485,6 +554,7 @@ async def _judge_single(
         is_correct=(score >= 4),
         support_span=support_span if diagnose else None,
         failure_category=failure_category,
+        retrieved_context=retrieved_context if diagnose else None,
         **metric_kwargs,
     )
 
@@ -529,13 +599,20 @@ async def evaluate_rag(
             # Query RAG endpoint
             async with semaphore:
                 try:
-                    rag_answer = await rag_client.query(question, session)
+                    rag_answer, retrieved_context = await rag_client.query(question, session)
                 except Exception as e:
                     rag_answer = f"[ERROR: {e}]"
+                    retrieved_context = None
 
             # Immediately judge the answer
             return await _judge_single(
-                qa, rag_answer, provider, semaphore, detailed=detailed, diagnose=diagnose
+                qa,
+                rag_answer,
+                provider,
+                semaphore,
+                detailed=detailed,
+                diagnose=diagnose,
+                retrieved_context=retrieved_context,
             )
 
         tasks = [process_qa(qa) for qa in golden_qas]
@@ -604,6 +681,7 @@ def run_evaluation(
     provider: Optional[str] = None,
     detailed: bool = False,
     diagnose: bool = False,
+    context_fields: Optional[list[str]] = None,
 ) -> EvaluationSummary:
     """
     Run RAG evaluation pipeline (synchronous wrapper).
@@ -621,6 +699,7 @@ def run_evaluation(
         provider: LLM provider for judging (e.g., 'ollama', 'openai'). Auto-detected if None.
         detailed: Enable multi-metric evaluation (default: False)
         diagnose: Enable failure diagnosis using support_span (default: False)
+        context_fields: Field names to look for retrieved context in RAG response (auto-detected if None)
 
     Returns:
         EvaluationSummary with results
@@ -637,6 +716,7 @@ def run_evaluation(
         question_field=question_field,
         answer_field=answer_field,
         headers=headers,
+        context_fields=context_fields,
     )
 
     # Get LLM provider for judging
@@ -704,6 +784,11 @@ def run_evaluation(
                     pct = count / len(diagnosed) * 100
                     label = cat.replace("_", " ").title()
                     print(f"  {label}: {count} ({pct:.1f}%)")
+        has_ctx = sum(1 for r in summary.results if r.retrieved_context)
+        if has_ctx > 0:
+            print(
+                f"  \U0001f4e6 Retrieved context captured: {has_ctx}/{len(summary.results)} queries"
+            )
         no_span = sum(1 for r in summary.results if not r.support_span)
         if no_span > 0:
             print(f"  \u26a0\ufe0f  {no_span} QA pairs had no support_span (diagnosis skipped)")
