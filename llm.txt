@@ -30,6 +30,8 @@ ragscore evaluate http://localhost:8000/query
 - **Zero config**: Auto-detects LLM from environment variables
 - **LLM-as-judge**: Scores RAG answers 1–5 with explanations
 - **Multi-metric**: Correctness, completeness, relevance, conciseness, faithfulness
+- **Failure diagnosis**: `--diagnose` classifies *why* each answer failed (retriever miss vs hallucination vs incomplete vs misinterpretation)
+- **Retrieved context capture**: Auto-extracts chunks/sources from RAG endpoint response for grounded diagnosis
 - **Notebook-ready**: Works in Jupyter and Google Colab
 - **MCP server**: AI assistant integration (Claude Desktop, Cursor, etc.)
 - **Multilingual**: English, Chinese, Japanese, German (auto-detected)
@@ -87,6 +89,8 @@ Options:
 - `--provider`: LLM provider for judging
 - `--model`: LLM model for judging
 - `--detailed`: Enable 5-metric evaluation (correctness, completeness, relevance, conciseness, faithfulness)
+- `--diagnose`: Failure root-cause classification (retriever_miss, generator_hallucination, incomplete_answer, wrong_interpretation)
+- `--context-fields`: Comma-separated field names to capture retrieved context from RAG response (auto-detected if not set)
 - `--concurrency, -c`: Max concurrent calls (default: 5)
 - `--question-field`: JSON field for question (default: "question")
 - `--answer-field`: JSON field for answer (default: "answer")
@@ -210,7 +214,17 @@ RAGSCORE_NO_TELEMETRY=1
     "accuracy": 0.85,
     "avg_score": 4.2
   },
-  "incorrect_pairs": [...]
+  "incorrect_pairs": [...],
+  "diagnosis": {
+    "total_diagnosed": 15,
+    "categories": {
+      "retriever_miss": 7,
+      "generator_hallucination": 4,
+      "incomplete_answer": 3,
+      "wrong_interpretation": 1
+    },
+    "retrieved_context_captured": 100
+  }
 }
 ```
 
@@ -226,4 +240,4 @@ RAGScore collects telemetry **only in MCP server mode** (`ragscore serve`). Stan
 
 ## Version
 
-Current: 0.8.2
+Current: 0.8.4
