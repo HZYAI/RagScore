@@ -60,6 +60,11 @@ pip install "ragscore[notebook]"  # + Jupyter/Colab support
 pip install "ragscore[all]"       # + All providers
 ```
 
+> **Already installed?** Keep up to date — new versions add features like failure diagnosis and retrieved context capture:
+> ```bash
+> pip install --upgrade ragscore
+> ```
+
 ### Option 1: Python API (Notebook-Friendly)
 
 Perfect for **Jupyter, Colab, and rapid iteration**. Get instant visualizations.

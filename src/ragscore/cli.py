@@ -94,6 +94,28 @@ app = typer.Typer(
 )
 
 
+def _check_for_update():
+    """Non-blocking check for newer version on PyPI. Prints a hint if outdated."""
+    try:
+        import json
+        import urllib.request
+
+        req = urllib.request.Request(
+            "https://pypi.org/pypi/ragscore/json",
+            headers={"Accept": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=2) as resp:
+            latest = json.loads(resp.read())["info"]["version"]
+        if latest != __version__:
+            typer.echo(
+                f"\n💡 Update available: {__version__} → {latest}"
+                f"  (pip install --upgrade ragscore)\n",
+                err=True,
+            )
+    except Exception:
+        pass
+
+
 @app.command("generate")
 def generate(
     paths: Optional[list[str]] = typer.Argument(
@@ -234,6 +256,8 @@ def main(
     if version:
         typer.echo(f"ragscore {__version__}")
         raise typer.Exit()
+
+    _check_for_update()
 
     if ctx.invoked_subcommand is None:
         typer.echo(ctx.get_help())

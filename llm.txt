@@ -15,6 +15,9 @@ RAGScore is an open-source Python tool that:
 ```bash
 pip install ragscore
 
+# Already installed? Keep up to date:
+pip install --upgrade ragscore
+
 # Step 1: Generate QA pairs from documents
 ragscore generate docs/
 
