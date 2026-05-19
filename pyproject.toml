@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ragscore"
-version = "0.8.5"
-description = "The Fastest RAG Audit - Generate QA datasets & evaluate RAG systems in Colab, Jupyter, or CLI. Privacy-first, lightning fast, visual reports."
+version = "0.8.6"
+description = "The Fastest Way to Audit Your RAG - Generate QA datasets & evaluate RAG systems in Colab, Jupyter, or CLI. Privacy-first, any LLM, visual reports."
 readme = "README.md"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.9,<3.14"

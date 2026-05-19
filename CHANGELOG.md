@@ -5,6 +5,11 @@ All notable changes to RAGScore will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.6] - 2026-05-19
+
+### Changed
+- **MCP server auto-detects Anthropic provider** — when `ANTHROPIC_API_KEY` is set, MCP tools default to Anthropic for judging/generation (since users are already in the Claude ecosystem)
+
 ## [0.8.5] - 2026-05-19
 
 ### Added

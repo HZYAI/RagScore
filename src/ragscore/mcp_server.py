@@ -37,6 +37,17 @@ except ImportError:
     FastMCP = None
 
 
+def _mcp_resolve_provider(provider: Optional[str] = None) -> Optional[str]:
+    """Resolve provider for MCP context: prefer anthropic since user is in Claude ecosystem."""
+    if provider:
+        return provider
+    import os
+
+    if os.getenv("ANTHROPIC_API_KEY"):
+        return "anthropic"
+    return provider
+
+
 def _detect_provider_info(provider: str = None, model: str = None) -> str:
     """Return a short string describing which provider/model will be used."""
     from .providers import get_provider
@@ -160,8 +171,9 @@ def create_mcp_server():
                 )
                 return "❌ No valid chunks found (all too short)."
 
-            llm_provider = get_provider(provider=provider, model=model)
-            provider_info = _detect_provider_info(provider=provider, model=model)
+            resolved_provider = _mcp_resolve_provider(provider)
+            llm_provider = get_provider(provider=resolved_provider, model=model)
+            provider_info = _detect_provider_info(provider=resolved_provider, model=model)
             if llm_provider.provider_name == "ollama" and concurrency > 2:
                 concurrency = 2
 
@@ -251,8 +263,9 @@ def create_mcp_server():
             golden_qas = load_golden_qas(dataset_path)
             ctx_fields = [f.strip() for f in context_fields.split(",")] if context_fields else None
             rag_client = RAGClient(endpoint=endpoint, context_fields=ctx_fields)
-            llm_provider = get_provider(provider=provider, model=model)
-            provider_info = _detect_provider_info(provider=provider, model=model)
+            resolved_provider = _mcp_resolve_provider(provider)
+            llm_provider = get_provider(provider=resolved_provider, model=model)
+            provider_info = _detect_provider_info(provider=resolved_provider, model=model)
 
             summary = await _evaluate_rag(
                 golden_qas=golden_qas,
@@ -390,8 +403,13 @@ def create_mcp_server():
         sys.stdout = sys.stderr
 
         try:
-            qt_provider = get_provider(model=model) if model else None
-            provider_info = _detect_provider_info(model=model)
+            resolved_provider = _mcp_resolve_provider(None)
+            qt_provider = (
+                get_provider(provider=resolved_provider, model=model)
+                if (model or resolved_provider)
+                else None
+            )
+            provider_info = _detect_provider_info(provider=resolved_provider, model=model)
 
             validated_save_golden = str(_validate_output_path(save_golden)) if save_golden else None
 
