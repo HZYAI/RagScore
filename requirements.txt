@@ -3,7 +3,7 @@
 # For development: pip install -e ".[dev,all]"
 
 # Core dependencies
-pypdf2>=3.0.1
+pypdf>=4.0.0
 nltk>=3.8.1
 tqdm>=4.66.1
 faiss-cpu>=1.7.4

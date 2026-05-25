@@ -230,7 +230,7 @@ def _read_docs_for_quicktest(docs: Union[str, list[str], Path]) -> list[dict]:
     """Read documents from path(s) for quick test."""
     import uuid
 
-    import PyPDF2
+    import pypdf
 
     if isinstance(docs, (str, Path)):
         docs = [str(docs)]
@@ -254,7 +254,7 @@ def _read_docs_for_quicktest(docs: Union[str, list[str], Path]) -> list[dict]:
         try:
             if file_path.suffix.lower() == ".pdf":
                 with open(file_path, "rb") as fh:
-                    reader = PyPDF2.PdfReader(fh)
+                    reader = pypdf.PdfReader(fh)
                     text = "".join(page.extract_text() or "" for page in reader.pages)
             else:
                 with open(file_path, encoding="utf-8", errors="ignore") as fh:

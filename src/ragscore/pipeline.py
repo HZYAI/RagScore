@@ -50,14 +50,14 @@ def _read_from_paths(paths):
 
     import uuid
 
-    import PyPDF2
+    import pypdf
 
     for file_path in get_pbar(files_to_process, desc="Reading documents"):
         text = ""
         try:
             if file_path.suffix.lower() == ".pdf":
                 with open(file_path, "rb") as fh:
-                    reader = PyPDF2.PdfReader(fh)
+                    reader = pypdf.PdfReader(fh)
                     text = "".join(page.extract_text() or "" for page in reader.pages)
             else:
                 with open(file_path, encoding="utf-8", errors="ignore") as fh:

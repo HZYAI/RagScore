@@ -5,6 +5,14 @@ All notable changes to RAGScore will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.7] - 2026-05-26
+
+### Added
+- **CLI automatic update check** — non-blocking check for newer PyPI versions on CLI execution, suggesting upgrades when outdated
+
+### Changed
+- **Migrated completely to `pypdf`** — replaced deprecated `PyPDF2` dependencies across all document readers, CLI pipelines, and notebook templates to eliminate deprecation warning spam
+
 ## [0.8.6] - 2026-05-19
 
 ### Changed

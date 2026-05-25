@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any
 
 import nltk
-import PyPDF2
+import pypdf
 from tqdm import tqdm
 
 from . import config
@@ -93,7 +93,7 @@ def read_docs(
         try:
             if p.suffix.lower() == ".pdf":
                 with open(p, "rb") as fh:
-                    reader = PyPDF2.PdfReader(fh)
+                    reader = pypdf.PdfReader(fh)
                     text = "".join(page.extract_text() or "" for page in reader.pages)
             else:
                 with open(p, encoding="utf-8", errors="ignore") as fh:

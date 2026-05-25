@@ -147,7 +147,7 @@ class TestReadDocs:
             assert len(doc["text"]) > 0
 
     def test_read_pdf_file(self, temp_dir: Path):
-        """Test reading PDF files (if PyPDF2 works)."""
+        """Test reading PDF files (if pypdf works)."""
         # This is a basic test - full PDF testing would need fixture files
         docs_dir = temp_dir / "docs"
         docs_dir.mkdir()

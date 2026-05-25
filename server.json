@@ -7,12 +7,12 @@
     "url": "https://github.com/HZYAI/RagScore",
     "source": "github"
   },
-  "version": "0.8.6",
+  "version": "0.8.7",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "ragscore",
-      "version": "0.8.6",
+      "version": "0.8.7",
       "transport": {
         "type": "stdio"
       },

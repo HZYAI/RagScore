@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ragscore"
-version = "0.8.6"
+version = "0.8.7"
 description = "The Fastest Way to Audit Your RAG - Generate QA datasets & evaluate RAG systems in Colab, Jupyter, or CLI. Privacy-first, any LLM, visual reports."
 readme = "README.md"
 license = {text = "Apache-2.0"}
@@ -49,7 +49,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "pypdf2>=3.0.1",
+    "pypdf>=4.0.0",
     "nltk>=3.8.1",
     "tqdm>=4.66.1",
     "typer[all]>=0.16.0",
