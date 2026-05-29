@@ -75,6 +75,7 @@ def get_pbar(
 
     if env in ["colab", "jupyter"]:
         try:
+            import ipywidgets  # noqa: F401
             from tqdm.notebook import tqdm
 
             return tqdm(iterable, total=total, desc=desc, dynamic_ncols=True, **kwargs)
@@ -104,13 +105,19 @@ def get_async_pbar():
 
     if env in ["colab", "jupyter"]:
         try:
+            import ipywidgets  # noqa: F401
             from tqdm.notebook import tqdm as tqdm_notebook
 
             class NotebookAsyncProgress:
                 @staticmethod
                 async def gather(*tasks, desc: str = ""):
                     """Gather tasks with notebook-friendly progress bar."""
-                    pbar = tqdm_notebook(total=len(tasks), desc=desc, dynamic_ncols=True)
+                    try:
+                        pbar = tqdm_notebook(total=len(tasks), desc=desc, dynamic_ncols=True)
+                    except ImportError:
+                        from tqdm.asyncio import tqdm_asyncio
+
+                        return await tqdm_asyncio.gather(*tasks, desc=desc)
                     results = []
                     for coro in asyncio.as_completed(tasks):
                         result = await coro

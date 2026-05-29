@@ -403,7 +403,7 @@ def create_mcp_server():
         sys.stdout = sys.stderr
 
         try:
-            resolved_provider = _mcp_resolve_provider(None)
+            resolved_provider = _mcp_resolve_provider(provider)
             qt_provider = (
                 get_provider(provider=resolved_provider, model=model)
                 if (model or resolved_provider)

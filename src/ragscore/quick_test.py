@@ -517,6 +517,7 @@ async def _quick_test_async(
     semaphore = asyncio.Semaphore(concurrency)
     results = []
     corrections = []
+    processing_errors = []
 
     # === Golden mode: load pre-generated QAs ===
     if golden is not None:
@@ -670,6 +671,7 @@ async def _quick_test_async(
                     question, golden_answer, rag_answer, score, reason, data, source
                 )
             except Exception as e:
+                processing_errors.append(type(e).__name__)
                 if not silent:
                     print(f"Error processing QA: {e}", file=sys.stderr)
                 return None
@@ -719,6 +721,7 @@ async def _quick_test_async(
                 )
 
             except Exception as e:
+                processing_errors.append(type(e).__name__)
                 if not silent:
                     print(f"Error processing chunk: {e}", file=sys.stderr)
                 return None
@@ -749,16 +752,10 @@ async def _quick_test_async(
             print(f"💾 Saved {len(generated_qas_list)} QA pairs to {save_golden}")
 
     if not results:
-        return QuickTestResult(
-            total=0,
-            correct=0,
-            accuracy=0.0,
-            avg_score=0.0,
-            passed=False,
-            threshold=threshold,
-            details=[],
-            corrections=[],
-        )
+        message = "No test results generated. Check provider/API errors or model output."
+        if processing_errors:
+            message += f" Last error type: {processing_errors[-1]}."
+        raise RAGScoreError(message)
 
     # Calculate summary
     total = len(results)
